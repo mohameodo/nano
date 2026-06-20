@@ -27,11 +27,5 @@
   "devDependencies": {
     "@types/pg": "^8.11.10",
     "typescript": "^5.6.3"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp"
-    ]
   }
 }
