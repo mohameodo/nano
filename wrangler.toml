@@ -1,0 +1,6 @@
+name = "poprink-nano"
+pages_build_output_dir = "./dist"
+
+[vars]
+PORT = "3000"
+HOST = "0.0.0.0"

@@ -1,0 +1,6 @@
+[install]
+cache = true
+lockfile = true
+
+[run]
+define = {}
