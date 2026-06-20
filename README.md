@@ -12,10 +12,25 @@ minimalist web interface for poprink
 
 ## commands
 
-- pnpm install to install dependencies
-- node setup.js to configure application settings
-- pnpm build to compile application
-- pnpm dev to run local web server
+install dependencies:
+```bash
+pnpm install
+```
+
+configure application:
+```bash
+node setup.js
+```
+
+compile application:
+```bash
+pnpm build
+```
+
+run local development server:
+```bash
+pnpm dev
+```
 
 ## docker
 
