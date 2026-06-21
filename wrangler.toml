@@ -1,7 +1,10 @@
 name = "nano"
-pages_build_output_dir = "./dist"
+main = "./dist/_worker.js"
 compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2026-03-02"
+
+[assets]
+directory = "./dist"
 
 [vars]
 PORT = "3000"
