@@ -32,7 +32,8 @@ const initDb = async () => {
       const fs = (await import(/* @vite-ignore */ fsModule)).default;
       const pathModule = 'node:pa' + 'th';
       const path = (await import(/* @vite-ignore */ pathModule)).default;
-      const { fileURLToPath } = await import('node:url');
+      const urlModule = 'node:u' + 'rl';
+      const { fileURLToPath } = await import(/* @vite-ignore */ urlModule);
       const dbPath = fileURLToPath(new URL('../../database.json', import.meta.url));
       if (!fs.existsSync(dbPath)) {
         fs.writeFileSync(dbPath, JSON.stringify({ users: [] }, null, 2));
@@ -68,7 +69,8 @@ export async function query(text: string, params?: any[]) {
   const fs = (await import(/* @vite-ignore */ fsModule)).default;
   const pathModule = 'node:pa' + 'th';
   const path = (await import(/* @vite-ignore */ pathModule)).default;
-  const { fileURLToPath } = await import('node:url');
+  const urlModule = 'node:u' + 'rl';
+  const { fileURLToPath } = await import(/* @vite-ignore */ urlModule);
   const dbPath = fileURLToPath(new URL('../../database.json', import.meta.url));
   
   const data = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
