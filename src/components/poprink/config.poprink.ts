@@ -5,9 +5,11 @@ const getEnv = (key: string, defaultValue: any) => {
     return (window as any).__POPRINK_CONFIG__?.[key] ?? defaultValue;
   }
   const val = (import.meta as any).env?.[key] ?? process.env[key];
-  if (val === undefined) return defaultValue;
-  if (val === "true") return true;
-  if (val === "false") return false;
+  if (val === undefined || val === null) return defaultValue;
+  if (val === "true" || val === true) return true;
+  if (val === "false" || val === false) return false;
+  if (typeof val === "number") return val;
+  if (typeof val !== "string") return val;
   const num = Number(val);
   if (!isNaN(num) && val.trim() !== "") return num;
   return val;

@@ -177,7 +177,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
   }, [])
 
   const renderMixedText = (text: string, isGreeting: boolean = false) => {
-    if (locale === "ar" || locale === "hi" || locale === "th" || locale === "zh" || locale === "ja" || locale === "ko") {
+    if (locale === "ar") {
       return <span style={{ color: "var(--text-color)" }}>{text}</span>
     }
     const fonts = isGreeting
@@ -599,7 +599,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
         </div>
       )}
 
-      {poprinkConfig.features.showWatermarks && <Watermarks renderMixedText={renderMixedText} />}
+      {poprinkConfig.features.showWatermarks && <Watermarks renderMixedText={renderMixedText} locale={locale} t={t} />}
 
       <LoginDialog
         isOpen={loginOpen}

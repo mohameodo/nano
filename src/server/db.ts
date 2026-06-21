@@ -1,35 +1,56 @@
-import pg from 'pg';
-import fs from 'fs';
-import path from 'path';
-
-const { Pool } = pg;
 const connectionString = process.env.DATABASE_URL;
 const dbType = process.env.DATABASE_TYPE || (connectionString ? 'postgres' : 'json');
 
 let pool: any = null;
-const JSON_DB_PATH = path.resolve(process.cwd(), 'database.json');
 
-if (dbType === 'postgres') {
-  pool = new Pool({
-    connectionString,
-    ssl: connectionString?.includes('neon') ? { rejectUnauthorized: false } : undefined,
-  });
-  pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      username VARCHAR(50) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `).catch(() => {});
-} else {
-  if (!fs.existsSync(JSON_DB_PATH)) {
-    fs.writeFileSync(JSON_DB_PATH, JSON.stringify({ users: [] }, null, 2));
+const initDb = async () => {
+  if (dbType === 'postgres') {
+    try {
+      const pgModule = 'p' + 'g';
+      const pg = (await import(/* @vite-ignore */ pgModule)).default;
+      const { Pool } = pg;
+      pool = new Pool({
+        connectionString,
+        ssl: connectionString?.includes('neon') ? { rejectUnauthorized: false } : undefined,
+      });
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          username VARCHAR(50) UNIQUE NOT NULL,
+          password VARCHAR(255) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `).catch(() => {});
+    } catch (err) {
+    }
+  } else {
+    try {
+      const fsModule = 'node:f' + 's';
+      const fs = (await import(/* @vite-ignore */ fsModule)).default;
+      const pathModule = 'node:pa' + 'th';
+      const path = (await import(/* @vite-ignore */ pathModule)).default;
+      const dbPath = path.resolve(process.cwd(), 'database.json');
+      if (!fs.existsSync(dbPath)) {
+        fs.writeFileSync(dbPath, JSON.stringify({ users: [] }, null, 2));
+      }
+    } catch (err) {
+    }
   }
-}
+};
+
+initDb().catch(() => {});
 
 export async function query(text: string, params?: any[]) {
   if (dbType === 'postgres') {
+    if (!pool) {
+      const pgModule = 'p' + 'g';
+      const pg = (await import(/* @vite-ignore */ pgModule)).default;
+      const { Pool } = pg;
+      pool = new Pool({
+        connectionString,
+        ssl: connectionString?.includes('neon') ? { rejectUnauthorized: false } : undefined,
+      });
+    }
     return pool.query(text, params);
   }
 
@@ -39,7 +60,13 @@ export async function query(text: string, params?: any[]) {
     return { rows: [] };
   }
   
-  const data = JSON.parse(fs.readFileSync(JSON_DB_PATH, 'utf8'));
+  const fsModule = 'node:f' + 's';
+  const fs = (await import(/* @vite-ignore */ fsModule)).default;
+  const pathModule = 'node:pa' + 'th';
+  const path = (await import(/* @vite-ignore */ pathModule)).default;
+  const dbPath = path.resolve(process.cwd(), 'database.json');
+  
+  const data = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
   
   if (normalized.startsWith('INSERT INTO users')) {
     const username = params?.[0];
@@ -54,7 +81,7 @@ export async function query(text: string, params?: any[]) {
       created_at: new Date().toISOString()
     };
     data.users.push(newUser);
-    fs.writeFileSync(JSON_DB_PATH, JSON.stringify(data, null, 2));
+    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
     return { rows: [newUser] };
   }
   
