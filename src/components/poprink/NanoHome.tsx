@@ -1,6 +1,32 @@
 import { useState, useEffect } from "react"
 import type { FormEvent } from "react"
-import { FaChevronDown } from "react-icons/fa"
+import { 
+  FaChevronDown, 
+  FaTv, 
+  FaFilm, 
+  FaPlay, 
+  FaVideo, 
+  FaTicketAlt, 
+  FaCamera, 
+  FaGamepad, 
+  FaHeadphones, 
+  FaCompactDisc, 
+  FaPhotoVideo 
+} from "react-icons/fa"
+
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+  tv: FaTv,
+  film: FaFilm,
+  play: FaPlay,
+  video: FaVideo,
+  ticket: FaTicketAlt,
+  camera: FaCamera,
+  gamepad: FaGamepad,
+  headphones: FaHeadphones,
+  disc: FaCompactDisc,
+  media: FaPhotoVideo,
+}
+
 import Header from "./home/Header"
 import SearchForm from "./home/SearchForm"
 import MediaGrid from "./home/MediaGrid"
@@ -268,44 +294,97 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
 
       {!activeQuery.trim() ? (
         <div className="nano-container-home">
-          {poprinkConfig.logo?.showIcon !== false ? (
-            <div
-              className="nano-home-logo-large"
-              style={{
-                width: poprinkConfig.logo?.size === "xl" ? "175px" : poprinkConfig.logo?.size === "lg" ? "140px" : poprinkConfig.logo?.size === "md" ? "110px" : "80px",
-                height: poprinkConfig.logo?.size === "xl" ? "175px" : poprinkConfig.logo?.size === "lg" ? "140px" : poprinkConfig.logo?.size === "md" ? "110px" : "80px",
-              }}
-            >
-              <Logo />
-            </div>
-          ) : (
-            <div
-              className="nano-home-title-large"
-              style={{
-                fontSize: poprinkConfig.logo?.showGreeting
-                  ? (poprinkConfig.logo?.size === "xl" ? "4.8rem" : poprinkConfig.logo?.size === "lg" ? "3.8rem" : poprinkConfig.logo?.size === "md" ? "2.8rem" : "2.0rem")
-                  : (poprinkConfig.logo?.size === "xl" ? "5.8rem" : poprinkConfig.logo?.size === "lg" ? "4.8rem" : poprinkConfig.logo?.size === "md" ? "3.8rem" : "2.8rem"),
-                marginBottom: "24px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center"
-              }}
-            >
-              <MatrixText
-                text={logoText}
-                renderText={(scrambled) =>
-                  poprinkConfig.logo?.showGreeting ? (
-                    renderMixedText(scrambled)
-                  ) : poprinkConfig.logo?.useMixedFancyFont ? (
-                    renderMixedText(scrambled)
-                  ) : (
-                    <span style={{ color: "var(--text-color)" }}>{scrambled}</span>
-                  )
+          {(() => {
+            const style = poprinkConfig.logo?.greetingStyle || "slogans";
+            const size = poprinkConfig.logo?.size || "lg";
+            const sizePx = size === "xl" ? "175px" : size === "lg" ? "140px" : size === "md" ? "110px" : "80px";
+
+            switch (style) {
+              case "logo":
+                return (
+                  <div className="nano-home-logo-large" style={{ width: sizePx, height: sizePx }}>
+                    <Logo />
+                  </div>
+                );
+              case "icon": {
+                const IconComponent = ICON_MAP[poprinkConfig.logo?.customIcon?.toLowerCase() || ""] || FaFilm;
+                return (
+                  <div className="nano-home-logo-large" style={{ width: sizePx, height: sizePx, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <IconComponent style={{ fontSize: `calc(${sizePx} * 0.7)`, color: "var(--accent-color)" }} />
+                  </div>
+                );
+              }
+              case "gif":
+                return (
+                  <div className="nano-home-logo-large" style={{ width: sizePx, height: sizePx, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <img 
+                      src={poprinkConfig.logo?.customGif || "/icons/poprink.svg"} 
+                      alt="custom" 
+                      style={{ width: "100%", height: "100%", objectFit: "contain" }} 
+                    />
+                  </div>
+                );
+              case "logo-and-icon": {
+                const IconComponent = ICON_MAP[poprinkConfig.logo?.customIcon?.toLowerCase() || ""] || FaFilm;
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", marginBottom: "24px" }}>
+                    <div className="nano-home-logo-large" style={{ width: "90px", height: "90px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                      <IconComponent style={{ fontSize: "60px", color: "var(--accent-color)" }} />
+                    </div>
+                    <div
+                      className="nano-home-title-large"
+                      style={{
+                        fontSize: size === "xl" ? "5.8rem" : size === "lg" ? "4.8rem" : size === "md" ? "3.8rem" : "2.8rem",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        textAlign: "center"
+                      }}
+                    >
+                      {poprinkConfig.logo?.useMixedFancyFont ? renderMixedText(poprinkConfig.logo.text) : <span style={{ color: "var(--text-color)" }}>{poprinkConfig.logo.text}</span>}
+                    </div>
+                  </div>
+                );
+              }
+              case "slogans":
+              default:
+                if (poprinkConfig.logo?.showIcon !== false) {
+                  return (
+                    <div className="nano-home-logo-large" style={{ width: sizePx, height: sizePx }}>
+                      <Logo />
+                    </div>
+                  );
                 }
-              />
-            </div>
-          )}
+                return (
+                  <div
+                    className="nano-home-title-large"
+                    style={{
+                      fontSize: poprinkConfig.logo?.showGreeting
+                        ? (size === "xl" ? "4.8rem" : size === "lg" ? "3.8rem" : size === "md" ? "2.8rem" : "2.0rem")
+                        : (size === "xl" ? "5.8rem" : size === "lg" ? "4.8rem" : size === "md" ? "3.8rem" : "2.8rem"),
+                      marginBottom: "24px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      textAlign: "center"
+                    }}
+                  >
+                    <MatrixText
+                      text={logoText}
+                      renderText={(scrambled) =>
+                        poprinkConfig.logo?.showGreeting ? (
+                          renderMixedText(scrambled)
+                        ) : poprinkConfig.logo?.useMixedFancyFont ? (
+                          renderMixedText(scrambled)
+                        ) : (
+                          <span style={{ color: "var(--text-color)" }}>{scrambled}</span>
+                        )
+                      }
+                    />
+                  </div>
+                );
+            }
+          })()}
       
           <SearchForm
             query={query}

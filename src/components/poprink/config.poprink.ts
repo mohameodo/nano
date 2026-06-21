@@ -29,6 +29,9 @@ export interface PoprinkConfig {
     useMixedFancyFont: boolean;
     size: "sm" | "md" | "lg" | "xl";
     showGreeting?: boolean;
+    greetingStyle?: "slogans" | "logo" | "icon" | "gif" | "logo-and-icon";
+    customIcon?: string;
+    customGif?: string;
   };
   metadata: {
     title: string;
@@ -66,6 +69,9 @@ export const poprinkConfig: PoprinkConfig = {
     useMixedFancyFont: getEnv("USE_MIXED_FANCY_FONT", true),
     size: getEnv("LOGO_SIZE", "lg") as "sm" | "md" | "lg" | "xl",
     showGreeting: getEnv("SHOW_GREETING", true),
+    greetingStyle: getEnv("GREETING_STYLE", "slogans") as any,
+    customIcon: getEnv("CUSTOM_ICON", ""),
+    customGif: getEnv("CUSTOM_GIF", ""),
   },
   metadata: {
     title: getEnv("METADATA_TITLE", "poprink nano"),
