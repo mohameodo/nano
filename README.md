@@ -88,6 +88,14 @@ you can customize the application at runtime using environment variables:
 - `SITE_NAME` - name of your site (default `poprink`)
 - `THEME_HUE` - default accent color hue 0-360 (default `310`)
 - `THEME_MODE` - default color scheme `dark` or `light` (default `dark`)
+- `THEME_BG_STYLE` - background texture pattern style `dots`, `lines`, `thin-lines`, `text`, `grain`, or `none` (default `none`)
+- `THEME_CUSTOM_BG` - custom background image/pattern URL
+- `GREETING_STYLE` - main landing greeting style `slogans`, `logo`, `icon`, `gif`, or `logo-and-icon` (default `slogans`)
+- `CUSTOM_ICON` - custom icon identifier `tv`, `film`, `play`, `video`, `ticket`, `camera`, `gamepad`, `headphones`, `disc`, or `media`
+- `CUSTOM_GIF` - custom logo GIF image URL
+- `HEADER_SHOW_THEME_TOGGLE` - show theme mode toggle in header `true` or `false` (default `true`)
+- `HEADER_SHOW_COLOR_PICKER` - show color hue picker in header `true` or `false` (default `true`)
+- `HEADER_SHOW_LANG_SELECTOR` - show language selector in header `true` or `false` (default `true`)
 - `METADATA_TITLE` - browser window title (default `poprink nano`)
 - `METADATA_DESCRIPTION` - meta description for seo
 - `DEFAULT_LOCALE` - default interface language code (default `en`)
