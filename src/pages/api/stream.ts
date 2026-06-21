@@ -1,8 +1,16 @@
 import type { APIRoute } from 'astro';
-import fs from 'fs';
-import path from 'path';
+
+const fsModule = 'fs';
+const pathModule = 'path';
 
 export const GET: APIRoute = async ({ request }) => {
+  // @ts-ignore
+  const fsImport = await import(fsModule);
+  const fs = fsImport.default || fsImport;
+  // @ts-ignore
+  const pathImport = await import(pathModule);
+  const path = pathImport.default || pathImport;
+
   const url = new URL(request.url);
   const filePath = url.searchParams.get('path');
   const base = url.searchParams.get('base');
