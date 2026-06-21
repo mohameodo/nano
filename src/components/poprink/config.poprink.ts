@@ -107,8 +107,8 @@ const configObject: PoprinkConfig = {
     showTrending: getEnv("SHOW_TRENDING", false),
     showQuickTags: getEnv("SHOW_QUICK_TAGS", false),
     enableAuth: getEnv("ENABLE_AUTH", false),
-    enableContinueWatching: getEnv("ENABLE_CONTINUE_WATCHING", false),
-    enableWatchlist: getEnv("ENABLE_WATCHLIST", false),
+    enableContinueWatching: false,
+    enableWatchlist: false,
     enableLocalLibrary: getEnv("ENABLE_LOCAL_LIBRARY", false),
     enableLocalLibraryEditing: getEnv("ENABLE_LOCAL_LIBRARY_EDITING", false),
     header: {
