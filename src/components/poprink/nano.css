@@ -1737,11 +1737,11 @@ html[lang="ar"] .nano-home-title-large {
 
 
 
-
-
-
-
-
-
-
-
+.nano-dialog-input::-webkit-outer-spin-button,
+.nano-dialog-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.nano-dialog-input[type=number] {
+  -moz-appearance: textfield;
+}

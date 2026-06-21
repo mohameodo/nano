@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import type { FormEvent } from "react"
-import { getStoredHandle, storeHandle, clearStoredHandle, verifyPermission, loadRinkJson } from "../../lib/nano/local-library"
+import { getStoredHandle, storeHandle, clearStoredHandle, verifyPermission, loadRinkJson, getBrowserItems } from "../../lib/nano/local-library"
 import { 
   FaChevronDown, 
   FaTv, 
@@ -68,45 +68,43 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
   const [currentUser, setCurrentUser] = useState(initialUser)
   const [continueWatching, setContinueWatching] = useState<any[]>([])
   const [watchlist, setWatchlist] = useState<any[]>([])
-  const [localFolderHandle, setLocalFolderHandle] = useState<FileSystemDirectoryHandle | null>(null)
-  const [localFolderConnected, setLocalFolderConnected] = useState(false)
   const [localItems, setLocalItems] = useState<any[]>([])
+  const [adminOpen, setAdminOpen] = useState(false)
 
-  useEffect(() => {
-    async function initLocal() {
+  const loadAllLocalItems = async () => {
+    let folderItems: any[] = []
+    const serverPath = typeof window !== "undefined" ? localStorage.getItem("poprink-local-server-path") : ""
+    
+    if (serverPath && serverPath.trim()) {
+      try {
+        const res = await fetch(`/api/library?path=${encodeURIComponent(serverPath.trim())}`)
+        if (res.ok) {
+          folderItems = await res.json()
+        }
+      } catch (e) {}
+    } else {
       const handle = await getStoredHandle()
       if (handle) {
-        setLocalFolderHandle(handle)
         try {
           const hasPerm = await verifyPermission(handle)
           if (hasPerm) {
-            setLocalFolderConnected(true)
-            const items = await loadRinkJson(handle)
-            setLocalItems(items)
+            folderItems = await loadRinkJson(handle)
           }
         } catch (e) {}
       }
     }
-    initLocal()
+    const browserItems = await getBrowserItems()
+    
+    const mergedMap = new Map<string, any>()
+    folderItems.forEach((item) => mergedMap.set(String(item.id), item))
+    browserItems.forEach((item) => mergedMap.set(String(item.id), item))
+    
+    setLocalItems(Array.from(mergedMap.values()))
+  }
+
+  useEffect(() => {
+    loadAllLocalItems()
   }, [])
-
-  const handleConnectLocalFolder = async () => {
-    try {
-      const handle = await (window as any).showDirectoryPicker()
-      await storeHandle(handle)
-      setLocalFolderHandle(handle)
-      setLocalFolderConnected(true)
-      const items = await loadRinkJson(handle)
-      setLocalItems(items)
-    } catch (e) {}
-  }
-
-  const handleDisconnectLocalFolder = async () => {
-    await clearStoredHandle()
-    setLocalFolderHandle(null)
-    setLocalFolderConnected(false)
-    setLocalItems([])
-  }
 
   const loadLocalLists = () => {
     if (poprinkConfig.features.enableContinueWatching) {
@@ -124,7 +122,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
   }, [])
 
   const handleLocalCardClick = (item: any) => {
-    const providerParam = localFolderConnected ? "&provider=localFolder" : ""
+    const providerParam = "&provider=localFolder"
     if (item.type === "tv") {
       window.location.href = `/watch/${item.id}?type=tv&season=${item.season || 1}&episode=${item.episode || 1}${providerParam}`
     } else {
@@ -218,7 +216,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
     const savedLocale = document.cookie
       .split("; ")
       .find((row) => row.startsWith("poprink-locale="))
-      ?.split("=")[1]
+      ?.split("=")[1] || localStorage.getItem("poprink-locale")
     if (savedLocale && TRANSLATIONS[savedLocale]) {
       setLocale(savedLocale)
     } else {
@@ -231,6 +229,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
 
   useEffect(() => {
     document.cookie = `poprink-locale=${locale}; path=/; max-age=31536000; SameSite=Lax`
+    localStorage.setItem("poprink-locale", locale)
   }, [locale])
 
   useEffect(() => {
@@ -383,9 +382,6 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
         renderMixedText={renderMixedText}
         onLoginClick={() => setLoginOpen(true)}
         enableAuth={poprinkConfig.features.enableAuth}
-        localFolderConnected={localFolderConnected}
-        onConnectLocalFolder={handleConnectLocalFolder}
-        onDisconnectLocalFolder={handleDisconnectLocalFolder}
       />
 
       {!activeQuery.trim() ? (
@@ -544,23 +540,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
             </div>
           )}
 
-          {localItems.length > 0 && (
-            <div style={{ marginBottom: "32px" }}>
-              <h2 className="nano-trending-title">Local Library</h2>
-              <MediaGrid
-                results={localItems.map(item => ({
-                  id: Number(item.id) || item.id,
-                  title: item.title,
-                  poster_path: item.poster || null,
-                  media_type: item.type,
-                }))}
-                t={t}
-                onClick={handleLocalCardClick}
-                getReleaseYear={() => null}
-                onWatchlistChange={loadLocalLists}
-              />
-            </div>
-          )}
+
 
           {poprinkConfig.features.enableContinueWatching && continueWatching.length > 0 && (
             <div style={{ marginBottom: "32px" }}>

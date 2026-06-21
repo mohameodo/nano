@@ -54,6 +54,8 @@ export interface PoprinkConfig {
     enableAuth: boolean;
     enableContinueWatching?: boolean;
     enableWatchlist?: boolean;
+    enableLocalLibrary?: boolean;
+    enableLocalLibraryEditing?: boolean;
     header: {
       showThemeToggle: boolean;
       showColorPicker: boolean;
@@ -107,6 +109,8 @@ const configObject: PoprinkConfig = {
     enableAuth: getEnv("ENABLE_AUTH", false),
     enableContinueWatching: getEnv("ENABLE_CONTINUE_WATCHING", false),
     enableWatchlist: getEnv("ENABLE_WATCHLIST", false),
+    enableLocalLibrary: getEnv("ENABLE_LOCAL_LIBRARY", false),
+    enableLocalLibraryEditing: getEnv("ENABLE_LOCAL_LIBRARY_EDITING", false),
     header: {
       showThemeToggle: getEnv("HEADER_SHOW_THEME_TOGGLE", true),
       showColorPicker: getEnv("HEADER_SHOW_COLOR_PICKER", true),

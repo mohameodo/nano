@@ -92,9 +92,6 @@ interface HeaderProps {
   renderMixedText?: (text: string, isGreeting?: boolean) => React.ReactNode
   onLoginClick?: () => void
   enableAuth?: boolean
-  localFolderConnected?: boolean
-  onConnectLocalFolder?: () => void
-  onDisconnectLocalFolder?: () => void
 }
 
 export default function Header({
@@ -112,9 +109,6 @@ export default function Header({
   renderMixedText,
   onLoginClick,
   enableAuth,
-  localFolderConnected = false,
-  onConnectLocalFolder,
-  onDisconnectLocalFolder,
 }: HeaderProps) {
   const [themeOpen, setThemeOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
@@ -164,10 +158,10 @@ export default function Header({
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        {(onConnectLocalFolder || onDisconnectLocalFolder) && (
+        {poprinkConfig.features.enableLocalLibrary && typeof window !== "undefined" && window.location.pathname !== "/admin" && window.location.pathname !== "/admin/" && (
           <button 
             className="nano-btn-full" 
-            onClick={localFolderConnected ? onDisconnectLocalFolder : onConnectLocalFolder}
+            onClick={() => window.location.href = "/admin"}
             style={{ 
               display: "flex", 
               alignItems: "center", 
@@ -175,11 +169,11 @@ export default function Header({
               height: "36px",
               padding: "0 12px",
               fontSize: "0.85rem",
-              backgroundColor: localFolderConnected ? "rgba(255, 255, 255, 0.15)" : "var(--btn-bg)"
+              backgroundColor: "var(--btn-bg)"
             }}
           >
-            {localFolderConnected ? <FaFolderOpen /> : <FaFolder />}
-            <span>{localFolderConnected ? t.connected || "Connected" : t.localFolder || "Local Folder"}</span>
+            <FaFolder />
+            <span>{t.manage || "manage"}</span>
           </button>
         )}
         {poprinkConfig.features.header?.showThemeToggle !== false && (

@@ -1,0 +1,44 @@
+---
+import NanoAdmin from '../components/poprink/NanoAdmin';
+import { poprinkConfig } from '../components/poprink/config.poprink';
+
+const user = Astro.cookies.get('user')?.value;
+if (poprinkConfig.features.enableAuth && !user) {
+  return Astro.redirect('/login');
+}
+---
+
+<html lang={poprinkConfig.metadata.defaultLocale || 'en'} dir={(poprinkConfig.metadata.defaultLocale || 'en') === 'ar' ? 'rtl' : 'ltr'}>
+  <head>
+    <script is:inline define:vars={{ config: poprinkConfig }}>
+      window.__POPRINK_CONFIG__ = config;
+    </script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/icons/poprink.svg" />
+    <title>local library admin - {poprinkConfig.metadata.title}</title>
+    <script is:inline define:vars={{ defaultTheme: poprinkConfig.theme.defaultMode, defaultHue: poprinkConfig.theme.defaultHue }}>
+      (function() {
+        let theme = defaultTheme || 'dark';
+        const savedTheme = localStorage.getItem('poprink-theme');
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+          theme = savedTheme;
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        
+        let hue = defaultHue ? defaultHue.toString() : '310';
+        const savedHue = localStorage.getItem('poprink-theme-hue');
+        if (savedHue) {
+          const parsed = parseInt(savedHue, 10);
+          if (!isNaN(parsed) && parsed >= 0 && parsed <= 360) {
+            hue = parsed.toString();
+          }
+        }
+        document.documentElement.style.setProperty('--theme-hue', hue);
+      })();
+    </script>
+  </head>
+  <body style="margin: 0; background-color: var(--bg-color);">
+    <NanoAdmin client:load initialUser={user} />
+  </body>
+</html>

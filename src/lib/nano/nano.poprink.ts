@@ -1,4 +1,5 @@
 import { getPlugins } from "./plugins-loader";
+import { poprinkConfig } from "../../components/poprink/config.poprink";
 
 export interface NanoProvider {
   key: string;
@@ -10,7 +11,6 @@ export interface NanoProvider {
 
 const baseProviders: NanoProvider[] = [
   { key: "vidzeeWorks", name: "VidZee", enabled: true, rank: 1, isDirect: true },
-  { key: "localFolder", name: "Local Library", enabled: true, rank: 0, isDirect: true },
 ];
 
 export const providerList: NanoProvider[] = [
@@ -22,4 +22,5 @@ export const providerList: NanoProvider[] = [
     rank: p.rank,
     isDirect: p.isDirect,
   })),
+  { key: "localFolder", name: "Local Library", enabled: poprinkConfig.features.enableLocalLibrary || false, rank: 0, isDirect: true },
 ];

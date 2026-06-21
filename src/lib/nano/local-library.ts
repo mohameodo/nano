@@ -13,70 +13,151 @@ export interface LocalMediaItem {
   type: "movie" | "tv";
   title: string;
   poster?: string;
-  file?: string; // For movie
-  seasons?: Record<string, Record<string, string>>; // season_number -> episode_number -> file_path
+  file?: string;
+  seasons?: Record<string, Record<string, string>>;
   subtitles?: LocalSubtitle[];
 }
 
-export function getStoredHandle(): Promise<FileSystemDirectoryHandle | null> {
-  return new Promise((resolve) => {
+function getDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
     if (typeof indexedDB === "undefined") {
-      resolve(null);
+      reject(new Error("IndexedDB not supported"));
       return;
     }
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open(DB_NAME, 2);
     request.onupgradeneeded = () => {
-      request.result.createObjectStore(STORE_NAME);
-    };
-    request.onsuccess = () => {
       const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+      if (!db.objectStoreNames.contains("media-items")) {
+        db.createObjectStore("media-items");
+      }
+      if (!db.objectStoreNames.contains("media-files")) {
+        db.createObjectStore("media-files");
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function getStoredHandle(): Promise<FileSystemDirectoryHandle | null> {
+  try {
+    const db = await getDB();
+    return new Promise((resolve) => {
       const tx = db.transaction(STORE_NAME, "readonly");
       const store = tx.objectStore(STORE_NAME);
       const getReq = store.get(KEY);
       getReq.onsuccess = () => resolve(getReq.result || null);
       getReq.onerror = () => resolve(null);
-    };
-    request.onerror = () => resolve(null);
-  });
+    });
+  } catch {
+    return null;
+  }
 }
 
-export function storeHandle(handle: FileSystemDirectoryHandle): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof indexedDB === "undefined") {
-      resolve();
-      return;
-    }
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore(STORE_NAME);
-    };
-    request.onsuccess = () => {
-      const db = request.result;
+export async function storeHandle(handle: FileSystemDirectoryHandle): Promise<void> {
+  try {
+    const db = await getDB();
+    return new Promise((resolve) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
       const store = tx.objectStore(STORE_NAME);
       store.put(handle, KEY);
       tx.oncomplete = () => resolve();
-    };
-    request.onerror = () => resolve();
-  });
+    });
+  } catch {}
 }
 
-export function clearStoredHandle(): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof indexedDB === "undefined") {
-      resolve();
-      return;
-    }
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onsuccess = () => {
-      const db = request.result;
+export async function clearStoredHandle(): Promise<void> {
+  try {
+    const db = await getDB();
+    return new Promise((resolve) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
       const store = tx.objectStore(STORE_NAME);
       store.delete(KEY);
       tx.oncomplete = () => resolve();
-    };
-    request.onerror = () => resolve();
-  });
+    });
+  } catch {}
+}
+
+export async function getBrowserItems(): Promise<LocalMediaItem[]> {
+  try {
+    const db = await getDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("media-items", "readonly");
+      const store = tx.objectStore("media-items");
+      const getReq = store.get("items");
+      getReq.onsuccess = () => resolve(getReq.result || []);
+      getReq.onerror = () => {
+        try {
+          const val = localStorage.getItem("poprink-local-items");
+          resolve(val ? JSON.parse(val) : []);
+        } catch {
+          resolve([]);
+        }
+      };
+    });
+  } catch {
+    try {
+      const val = localStorage.getItem("poprink-local-items");
+      return val ? JSON.parse(val) : [];
+    } catch {
+      return [];
+    }
+  }
+}
+
+export async function saveBrowserItems(items: LocalMediaItem[]): Promise<void> {
+  try {
+    localStorage.setItem("poprink-local-items", JSON.stringify(items));
+    const db = await getDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("media-items", "readwrite");
+      const store = tx.objectStore("media-items");
+      store.put(items, "items");
+      tx.oncomplete = () => resolve();
+    });
+  } catch {}
+}
+
+export async function getBrowserFile(key: string): Promise<File | null> {
+  try {
+    const db = await getDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("media-files", "readonly");
+      const store = tx.objectStore("media-files");
+      const getReq = store.get(key);
+      getReq.onsuccess = () => resolve(getReq.result || null);
+      getReq.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function saveBrowserFile(key: string, file: File): Promise<void> {
+  try {
+    const db = await getDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("media-files", "readwrite");
+      const store = tx.objectStore("media-files");
+      store.put(file, key);
+      tx.oncomplete = () => resolve();
+    });
+  } catch {}
+}
+
+export async function deleteBrowserFile(key: string): Promise<void> {
+  try {
+    const db = await getDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("media-files", "readwrite");
+      const store = tx.objectStore("media-files");
+      store.delete(key);
+      tx.oncomplete = () => resolve();
+    });
+  } catch {}
 }
 
 export async function verifyPermission(handle: FileSystemHandle, readWrite = false): Promise<boolean> {

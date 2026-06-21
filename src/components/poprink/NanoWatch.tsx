@@ -7,7 +7,7 @@ import "./nano.css"
 import { providerList } from "../../lib/nano/nano.poprink"
 import { poprinkConfig } from "./config.poprink"
 import { TRANSLATIONS } from "./locales/translations"
-import { getStoredHandle, verifyPermission, loadRinkJson, getLocalFileUrl, storeHandle } from "../../lib/nano/local-library"
+import { getStoredHandle, verifyPermission, loadRinkJson, getLocalFileUrl, storeHandle, getBrowserItems, getBrowserFile, srtToVtt, saveBrowserItems } from "../../lib/nano/local-library"
 
 interface NanoWatchProps {
   id: string
@@ -40,6 +40,38 @@ const SERVERS = providerList
   .map((p) => ({ id: p.key, name: p.name }))
 
 export default function NanoWatch({ id, type, season, episode }: NanoWatchProps) {
+  const [mediaType, setMediaType] = useState(type)
+  const [localServerPath, setLocalServerPath] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("poprink-local-server-path") || ""
+    }
+    return ""
+  })
+
+  useEffect(() => {
+    setMediaType(type)
+  }, [type])
+
+  useEffect(() => {
+    async function checkLocalItem() {
+      let browserItems = await getBrowserItems()
+      if (localServerPath.trim()) {
+        try {
+          const res = await fetch(`/api/library?path=${encodeURIComponent(localServerPath.trim())}`)
+          if (res.ok) {
+            const list = await res.json()
+            browserItems = list
+          }
+        } catch (e) {}
+      }
+      const match = browserItems.find((item) => String(item.id) === String(id))
+      if (match) {
+        setActiveServer("localFolder")
+      }
+    }
+    checkLocalItem()
+  }, [id, localServerPath])
+
   const [locale, setLocale] = useState(poprinkConfig.metadata.defaultLocale || "en")
   const [info, setInfo] = useState<MediaInfo | null>(null)
   const [episodes, setEpisodes] = useState<EpisodeInfo[]>([])
@@ -50,12 +82,20 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
       const params = new URLSearchParams(window.location.search)
       const prov = params.get("provider")
       if (prov) return prov
+      const lastServer = localStorage.getItem("poprink-last-server")
+      if (lastServer && SERVERS.some(s => s.id === lastServer)) {
+        return lastServer
+      }
     }
-    const enabled = providerList.filter((p) => p.enabled)
-    const custom = enabled.find((p) => p.key !== "vidzeeWorks")
-    if (custom) return custom.key
-    return poprinkConfig.features.videoPlayer.defaultServer || (enabled.length > 0 ? enabled[0].key : "vidzee")
+    return poprinkConfig.features.videoPlayer.defaultServer || "vidzeeWorks"
   })
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && activeServer) {
+      localStorage.setItem("poprink-last-server", activeServer)
+    }
+  }, [activeServer])
+
   const [localFolderHandle, setLocalFolderHandle] = useState<FileSystemDirectoryHandle | null>(null)
   const [localFolderNeedsSetup, setLocalFolderNeedsSetup] = useState(false)
   const [localFolderError, setLocalFolderError] = useState("")
@@ -82,9 +122,19 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
   const playerType = poprinkConfig.features.videoPlayer.useVidstack ? "vidstack" : "default"
 
   useEffect(() => {
-    const saved = localStorage.getItem("poprink-locale")
-    if (saved) setLocale(saved)
+    const savedLocale = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("poprink-locale="))
+      ?.split("=")[1] || localStorage.getItem("poprink-locale")
+    if (savedLocale && TRANSLATIONS[savedLocale]) {
+      setLocale(savedLocale)
+    }
   }, [])
+
+  useEffect(() => {
+    document.cookie = `poprink-locale=${locale}; path=/; max-age=31536000; SameSite=Lax`
+    localStorage.setItem("poprink-locale", locale)
+  }, [locale])
 
   const messages = ["poprink", TRANSLATIONS[locale]?.searching || "searching", TRANSLATIONS[locale]?.loading || "loading"]
 
@@ -100,7 +150,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
     let cancelled = false
     async function load() {
       try {
-        const res = await fetch(`/api/details?id=${id}&type=${type}`)
+        const res = await fetch(`/api/details?id=${id}&type=${mediaType}`)
         if (cancelled) return
         const data = await res.json()
         
@@ -133,7 +183,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
     return () => {
       cancelled = true
     }
-  }, [id, type])
+  }, [id, mediaType])
 
   useEffect(() => {
     if (!info?.title || !poprinkConfig.features.enableContinueWatching) return
@@ -141,21 +191,21 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
     let list = saved ? JSON.parse(saved) : []
     const watchItem = {
       id: Number(id),
-      type,
+      type: mediaType,
       title: info.title,
       poster_path: info.poster || null,
-      season: type === "tv" ? currentSeason : undefined,
-      episode: type === "tv" ? currentEpisode : undefined,
+      season: mediaType === "tv" ? currentSeason : undefined,
+      episode: mediaType === "tv" ? currentEpisode : undefined,
       updatedAt: new Date().getTime(),
     }
     list = list.filter((item: any) => !(item.id === watchItem.id && item.type === watchItem.type))
     list.unshift(watchItem)
     list = list.slice(0, 12)
     localStorage.setItem("poprink-continue-watching", JSON.stringify(list))
-  }, [id, type, info, currentSeason, currentEpisode])
+  }, [id, mediaType, info, currentSeason, currentEpisode])
 
   useEffect(() => {
-    if (type !== "tv") return
+    if (mediaType !== "tv") return
     let cancelled = false
     async function loadEpisodes() {
       try {
@@ -177,16 +227,170 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
     return () => {
       cancelled = true
     }
-  }, [id, currentSeason, type])
+  }, [id, currentSeason, mediaType])
 
   useEffect(() => {
     let cancelled = false
     async function fetchScraped() {
       setScraping(true)
       setLocalFolderError("")
+
+      const fallbackToNextServer = () => {
+        const currentIndex = SERVERS.findIndex((s) => s.id === activeServer)
+        if (currentIndex !== -1 && currentIndex < SERVERS.length - 1) {
+          const nextServer = SERVERS[currentIndex + 1]
+          setActiveServer(nextServer.id)
+        } else {
+          setPlayerUrl("")
+          setIsDirectPlayer(false)
+          setIsM3U8(false)
+          setScraping(false)
+        }
+      }
       
       if (activeServer === "localFolder") {
+        let browserItems = await getBrowserItems()
+        if (localServerPath.trim()) {
+          try {
+            const res = await fetch(`/api/library?path=${encodeURIComponent(localServerPath.trim())}`)
+            if (res.ok) {
+              const list = await res.json()
+              browserItems = list
+              await saveBrowserItems(list)
+            }
+          } catch (e) {}
+        }
+        if (cancelled) return
+        const match = browserItems.find((item) => String(item.id) === String(id))
+        
+        if (match) {
+          if (match.type && match.type !== mediaType) {
+            setMediaType(match.type)
+            const url = new URL(window.location.href)
+            url.searchParams.set("type", match.type)
+            window.history.replaceState(null, "", url.pathname + url.search)
+            return
+          }
+          
+          let relativeFilePath = ""
+          if (mediaType === "movie") {
+            relativeFilePath = match.file || ""
+          } else {
+            relativeFilePath = match.seasons?.[currentSeason]?.[currentEpisode] || ""
+          }
+          
+          if (!relativeFilePath) {
+            setLocalFolderError(`No file mapped for this ${mediaType === "movie" ? "movie" : `Season ${currentSeason} Episode ${currentEpisode}`}`)
+            setPlayerUrl("")
+            setScraping(false)
+            return
+          }
+          
+          let videoUrl = ""
+          let isUrlDirect = false
+          if (relativeFilePath.startsWith("http://") || relativeFilePath.startsWith("https://") || relativeFilePath.startsWith("blob:")) {
+            videoUrl = relativeFilePath
+            isUrlDirect = true
+          } else if (relativeFilePath.startsWith("browser_file_")) {
+            const fileObj = await getBrowserFile(relativeFilePath)
+            if (fileObj) {
+              videoUrl = URL.createObjectURL(fileObj)
+              isUrlDirect = true
+            } else {
+              setLocalFolderError(`File not found in database: ${relativeFilePath}`)
+              setPlayerUrl("")
+              setScraping(false)
+              return
+            }
+          } else {
+            const isAbsolutePath = relativeFilePath.includes(":") || relativeFilePath.startsWith("/") || relativeFilePath.startsWith("\\")
+            if (isAbsolutePath || !localFolderHandle) {
+              let streamUrl = `/api/stream?path=${encodeURIComponent(relativeFilePath)}`
+              if (localServerPath) {
+                streamUrl += `&base=${encodeURIComponent(localServerPath)}`
+              }
+              videoUrl = streamUrl
+              isUrlDirect = true
+            } else if (localFolderHandle) {
+              try {
+                videoUrl = await getLocalFileUrl(localFolderHandle, relativeFilePath)
+                isUrlDirect = true
+              } catch (e) {
+                setLocalFolderError(`Failed to resolve local file path: ${relativeFilePath}`)
+                setPlayerUrl("")
+                setScraping(false)
+                return
+              }
+            } else {
+              setLocalFolderError(`File not found: ${relativeFilePath}. Upload the file or connect your local folder.`)
+              setPlayerUrl("")
+              setScraping(false)
+              return
+            }
+          }
+          
+          const resolvedSubs: any[] = []
+          if (Array.isArray(match.subtitles)) {
+            for (const sub of match.subtitles) {
+              if (sub.file.startsWith("http://") || sub.file.startsWith("https://") || sub.file.startsWith("blob:")) {
+                resolvedSubs.push({
+                  src: sub.file,
+                  label: sub.label || "Subtitle",
+                  language: sub.language || "en"
+                })
+              } else if (sub.file.startsWith("browser_file_")) {
+                const subFile = await getBrowserFile(sub.file)
+                if (subFile) {
+                  const text = await subFile.text()
+                  const vttText = subFile.name.endsWith(".srt") ? srtToVtt(text) : text
+                  const blob = new Blob([vttText], { type: "text/vtt" })
+                  resolvedSubs.push({
+                    src: URL.createObjectURL(blob),
+                    label: sub.label || "Local Sub",
+                    language: sub.language || "en"
+                  })
+                }
+              } else {
+                const isAbsolutePath = sub.file.includes(":") || sub.file.startsWith("/") || sub.file.startsWith("\\")
+                if (isAbsolutePath || !localFolderHandle) {
+                  let subUrl = `/api/stream?path=${encodeURIComponent(sub.file)}`
+                  if (localServerPath) {
+                    subUrl += `&base=${encodeURIComponent(localServerPath)}`
+                  }
+                  resolvedSubs.push({
+                    src: subUrl,
+                    label: sub.label || "Local Sub",
+                    language: sub.language || "en"
+                  })
+                } else if (localFolderHandle) {
+                  try {
+                    const subUrl = await getLocalFileUrl(localFolderHandle, sub.file)
+                    resolvedSubs.push({
+                      src: subUrl,
+                      label: sub.label || "Local Sub",
+                      language: sub.language || "en"
+                    })
+                  } catch (e) {}
+                }
+              }
+            }
+          }
+          
+          setPlayerUrl(videoUrl)
+          setIsDirectPlayer(isUrlDirect)
+          setIsM3U8(relativeFilePath.toLowerCase().includes(".m3u8") || relativeFilePath.toLowerCase().includes("/hls/"))
+          setSubtitles(resolvedSubs)
+          setScraping(false)
+          return
+        }
+
         if (!localFolderHandle) {
+          if (typeof window === "undefined" || typeof (window as any).showDirectoryPicker !== "function") {
+            setLocalFolderError("Local Folder Access is not supported on this browser, and this item is not in your browser-stored Local Library.")
+            setPlayerUrl("")
+            setScraping(false)
+            return
+          }
           setLocalFolderNeedsSetup(true)
           setPlayerUrl("")
           setIsDirectPlayer(false)
@@ -213,23 +417,31 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
           const items = await loadRinkJson(localFolderHandle)
           if (cancelled) return
           
-          const match = items.find((item) => String(item.id) === String(id))
-          if (!match) {
+          const folderMatch = items.find((item) => String(item.id) === String(id))
+          if (!folderMatch) {
             setLocalFolderError(`Not found in rink.json (ID ${id})`)
             setPlayerUrl("")
             setScraping(false)
             return
           }
+
+          if (folderMatch.type && folderMatch.type !== mediaType) {
+            setMediaType(folderMatch.type)
+            const url = new URL(window.location.href)
+            url.searchParams.set("type", folderMatch.type)
+            window.history.replaceState(null, "", url.pathname + url.search)
+            return
+          }
           
           let relativeFilePath = ""
-          if (type === "movie") {
-            relativeFilePath = match.file || ""
+          if (mediaType === "movie") {
+            relativeFilePath = folderMatch.file || ""
           } else {
-            relativeFilePath = match.seasons?.[currentSeason]?.[currentEpisode] || ""
+            relativeFilePath = folderMatch.seasons?.[currentSeason]?.[currentEpisode] || ""
           }
           
           if (!relativeFilePath) {
-            setLocalFolderError(`No file mapped for this ${type === "movie" ? "movie" : `Season ${currentSeason} Episode ${currentEpisode}`}`)
+            setLocalFolderError(`No file mapped for this ${mediaType === "movie" ? "movie" : `Season ${currentSeason} Episode ${currentEpisode}`}`)
             setPlayerUrl("")
             setScraping(false)
             return
@@ -239,8 +451,8 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
           if (cancelled) return
           
           const resolvedSubs: any[] = []
-          if (Array.isArray(match.subtitles)) {
-            for (const sub of match.subtitles) {
+          if (Array.isArray(folderMatch.subtitles)) {
+            for (const sub of folderMatch.subtitles) {
               try {
                 const subUrl = await getLocalFileUrl(localFolderHandle, sub.file)
                 resolvedSubs.push({
@@ -269,16 +481,17 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
 
       setLocalFolderNeedsSetup(false)
       try {
-        const res = await fetch(`/api/scrape?id=${id}&type=${type}&season=${currentSeason}&episode=${currentEpisode}&provider=${activeServer}`)
+        const res = await fetch(`/api/scrape?id=${id}&type=${mediaType}&season=${currentSeason}&episode=${currentEpisode}&provider=${activeServer}`)
         if (cancelled) return
         if (!res.ok) {
-          setPlayerUrl("")
-          setIsDirectPlayer(false)
-          setIsM3U8(false)
-          setScraping(false)
+          fallbackToNextServer()
           return
         }
         const data = await res.json()
+        if (!data || !data.url) {
+          fallbackToNextServer()
+          return
+        }
         setPlayerUrl(data.url)
         setIsDirectPlayer(data.isDirect || false)
         setIsM3U8(data.isM3U8 || false)
@@ -286,11 +499,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
         setScraping(false)
       } catch {
         if (!cancelled) {
-          setPlayerUrl("")
-          setIsDirectPlayer(false)
-          setIsM3U8(false)
-          setSubtitles([])
-          setScraping(false)
+          fallbackToNextServer()
         }
       }
     }
@@ -298,7 +507,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
     return () => {
       cancelled = true
     }
-  }, [id, type, currentSeason, currentEpisode, activeServer, localFolderHandle, retryTrigger])
+  }, [id, mediaType, currentSeason, currentEpisode, activeServer, localFolderHandle, retryTrigger, localServerPath])
 
   const handleEpisodeSelect = (epNum: number) => {
     setCurrentEpisode(epNum)
@@ -387,6 +596,10 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
 
 
   const handleConnectFolder = async () => {
+    if (typeof window === "undefined" || typeof (window as any).showDirectoryPicker !== "function") {
+      setLocalFolderError("Local Folder Access is not supported on this browser.")
+      return
+    }
     try {
       const handle = await (window as any).showDirectoryPicker()
       await storeHandle(handle)
@@ -502,7 +715,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
         servers={SERVERS}
         activeServer={activeServer}
         setActiveServer={setActiveServer}
-        isTv={type === "tv"}
+        isTv={mediaType === "tv"}
         showEpisodes={showEpisodes}
         setShowEpisodes={setShowEpisodes}
         subtitles={subtitles}
@@ -511,7 +724,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
   }
 
   const displayTitle =
-    type === "tv"
+    mediaType === "tv"
       ? `${info?.title || ""} - Season ${currentSeason} Episode ${currentEpisode}`
       : info?.title || ""
 
@@ -522,14 +735,14 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
         servers={SERVERS}
         activeServer={activeServer}
         setActiveServer={setActiveServer}
-        isTv={type === "tv"}
+        isTv={mediaType === "tv"}
         showEpisodes={showEpisodes}
         setShowEpisodes={setShowEpisodes}
       />
 
       <div className="nano-watch-content" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
         {renderPlayerContent()}
-        {type === "tv" && showEpisodes && (
+        {mediaType === "tv" && showEpisodes && (
           <Settings
             info={info}
             currentSeason={currentSeason}
