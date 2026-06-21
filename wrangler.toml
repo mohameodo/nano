@@ -1,4 +1,4 @@
-name = "poprink-nano"
+name = "nano"
 pages_build_output_dir = "./dist"
 
 [vars]
