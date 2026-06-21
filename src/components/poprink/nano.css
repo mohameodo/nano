@@ -129,6 +129,34 @@ html, body, button, input, select, textarea {
   position: relative;
 }
 
+.nano-wrapper.bg-style-dots {
+  background-image: radial-gradient(var(--watermark-color) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+.nano-wrapper.bg-style-lines {
+  background-image: 
+    linear-gradient(to right, var(--watermark-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--watermark-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.nano-wrapper.bg-style-thin-lines {
+  background-image: 
+    linear-gradient(to right, var(--watermark-color) 0.5px, transparent 0.5px),
+    linear-gradient(to bottom, var(--watermark-color) 0.5px, transparent 0.5px);
+  background-size: 30px 30px;
+}
+
+.nano-wrapper.bg-style-text {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='60'><text x='10' y='40' fill='rgba(255, 255, 255, 0.015)' font-size='18' font-family='sans-serif' font-weight='bold'>poprink</text></svg>");
+  background-repeat: repeat;
+}
+
+.nano-wrapper.bg-style-grain {
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='noiseFilter'><feTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23noiseFilter)' opacity='0.03'/></svg>");
+}
+
 .nano-header {
   width: 100%;
   padding: 16px 32px;

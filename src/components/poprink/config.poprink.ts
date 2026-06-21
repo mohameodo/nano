@@ -21,6 +21,7 @@ export interface PoprinkConfig {
       bgDark: string;
       bgLight: string;
     };
+    bgStyle?: "dots" | "lines" | "thin-lines" | "text" | "grain" | "none";
   };
   logo: {
     text: string;
@@ -57,6 +58,7 @@ export const poprinkConfig: PoprinkConfig = {
       bgDark: getEnv("COLOR_BG_DARK", "#16161a"),
       bgLight: getEnv("COLOR_BG_LIGHT", "#f8f9fa"),
     },
+    bgStyle: getEnv("THEME_BG_STYLE", "none") as any,
   },
   logo: {
     text: getEnv("SITE_NAME", "poprink"),

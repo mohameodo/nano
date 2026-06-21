@@ -243,8 +243,12 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
     setCurrentUser(undefined)
   }
 
+  const bgStyleClass = poprinkConfig.theme.bgStyle && poprinkConfig.theme.bgStyle !== "none"
+    ? `bg-style-${poprinkConfig.theme.bgStyle}`
+    : ""
+
   return (
-    <div className="nano-wrapper">
+    <div className={`nano-wrapper ${bgStyleClass}`}>
       <Header
         initialUser={currentUser}
         handleLogout={handleLogout}
