@@ -10,5 +10,5 @@ dist
 .vercel
 
 # Private sources/plugins folder
-# src/shade/*
-# !src/shade/placeholder.ts
+src/shade/*
+!src/shade/placeholder.ts
