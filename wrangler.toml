@@ -1,4 +1,4 @@
-name = "nano"
+name = "nano0"
 main = "./dist/_worker.js"
 compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2026-03-02"
