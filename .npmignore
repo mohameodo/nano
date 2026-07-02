@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+.vercel
+dist
+.astro
+
+src/shade/dev/**
+src/shade/private/**
+src/shade/**/*.ts
+!src/shade/placeholder.ts
+scripts/compile-all-rinks.mjs

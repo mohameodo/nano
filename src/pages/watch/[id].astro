@@ -1,0 +1,56 @@
+---
+import NanoWatch from '../../components/poprink/NanoWatch';
+import { poprinkConfig } from '../../components/poprink/config.poprink';
+
+const user = Astro.cookies.get('user')?.value;
+if (poprinkConfig.features.enableAuth && !user) {
+  return Astro.redirect('/login');
+}
+
+const { id } = Astro.params;
+const type = Astro.url.searchParams.get('type') || 'movie';
+const season = Astro.url.searchParams.get('season') || '1';
+const episode = Astro.url.searchParams.get('episode') || '1';
+---
+
+<html lang={poprinkConfig.metadata.defaultLocale || 'en'} dir={(poprinkConfig.metadata.defaultLocale || 'en') === 'ar' ? 'rtl' : 'ltr'}>
+  <head>
+    <script is:inline define:vars={{ config: poprinkConfig }}>
+      window.__POPRINK_CONFIG__ = config;
+    </script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href={poprinkConfig.metadata.thumbnail} />
+    <title>playing... - {poprinkConfig.metadata.title}</title>
+    <meta name="description" content={poprinkConfig.metadata.description} />
+    <meta property="og:title" content={`playing... - ${poprinkConfig.metadata.title}`} />
+    <meta property="og:description" content={poprinkConfig.metadata.description} />
+    <meta property="og:image" content={poprinkConfig.metadata.thumbnail} />
+    <script is:inline define:vars={{ defaultTheme: poprinkConfig.theme.defaultMode, defaultHue: poprinkConfig.theme.defaultHue, palette: poprinkConfig.theme.palette, bgDark: poprinkConfig.theme.colors.bgDark, bgLight: poprinkConfig.theme.colors.bgLight }}>
+      (function() {
+        let theme = defaultTheme || 'dark';
+        const savedTheme = localStorage.getItem('poprink-theme');
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+          theme = savedTheme;
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.setAttribute('data-palette', palette || 'color');
+        document.documentElement.style.setProperty('--bg-color-config-dark', bgDark || '#000000');
+        document.documentElement.style.setProperty('--bg-color-config-light', bgLight || '#ffffff');
+        
+        let hue = defaultHue !== undefined ? defaultHue.toString() : '200';
+        const savedHue = localStorage.getItem('poprink-theme-hue');
+        if (savedHue) {
+          const parsed = parseInt(savedHue, 10);
+          if (!isNaN(parsed) && parsed >= 0 && parsed <= 360) {
+            hue = parsed.toString();
+          }
+        }
+        document.documentElement.style.setProperty('--theme-hue', hue);
+      })();
+    </script>
+  </head>
+  <body style="margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background-color: #000;">
+    <NanoWatch client:load id={id || ''} type={type} season={season} episode={episode} />
+  </body>
+</html>

@@ -1,0 +1,12 @@
+name = "nano"
+main = "./dist/_worker.js"
+compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2026-03-02"
+keep_vars = true
+
+[assets]
+directory = "./dist"
+
+[vars]
+PORT = "3000"
+HOST = "0.0.0.0"

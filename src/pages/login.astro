@@ -1,0 +1,237 @@
+---
+import { TRANSLATIONS } from '../components/poprink/locales/translations';
+import { poprinkConfig } from '../components/poprink/config.poprink';
+
+const user = Astro.cookies.get('user')?.value;
+if (user) {
+  return Astro.redirect('/');
+}
+
+const locale = Astro.cookies.get('poprink-locale')?.value || poprinkConfig.metadata.defaultLocale || 'en';
+const t = TRANSLATIONS[locale] || TRANSLATIONS.en;
+---
+
+<html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+  <head>
+    <script is:inline define:vars={{ config: poprinkConfig }}>
+      window.__POPRINK_CONFIG__ = config;
+    </script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href={poprinkConfig.metadata.thumbnail} />
+    <title>{t.login} / {t.signUp} - {poprinkConfig.metadata.title}</title>
+    <meta name="description" content={poprinkConfig.metadata.description} />
+    <meta property="og:title" content={`${t.login} / ${t.signUp} - ${poprinkConfig.metadata.title}`} />
+    <meta property="og:description" content={poprinkConfig.metadata.description} />
+    <meta property="og:image" content={poprinkConfig.metadata.thumbnail} />
+    <script is:inline define:vars={{ defaultTheme: poprinkConfig.theme.defaultMode, defaultHue: poprinkConfig.theme.defaultHue, palette: poprinkConfig.theme.palette, bgDark: poprinkConfig.theme.colors.bgDark, bgLight: poprinkConfig.theme.colors.bgLight }}>
+      (function() {
+        let theme = defaultTheme || 'dark';
+        const savedTheme = localStorage.getItem('poprink-theme');
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+          theme = savedTheme;
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.setAttribute('data-palette', palette || 'color');
+        document.documentElement.style.setProperty('--bg-color-config-dark', bgDark || '#000000');
+        document.documentElement.style.setProperty('--bg-color-config-light', bgLight || '#ffffff');
+        
+        let hue = defaultHue !== undefined ? defaultHue.toString() : '200';
+        const savedHue = localStorage.getItem('poprink-theme-hue');
+        if (savedHue) {
+          const parsed = parseInt(savedHue, 10);
+          if (!isNaN(parsed) && parsed >= 0 && parsed <= 360) {
+            hue = parsed.toString();
+          }
+        }
+        document.documentElement.style.setProperty('--theme-hue', hue);
+      })();
+    </script>
+    <style>
+      @font-face {
+        font-family: 'Roboto';
+        src: url('/font/Roboto-Regular.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: 'Roboto';
+        src: url('/font/Roboto-Medium.ttf') format('truetype');
+        font-weight: 500;
+        font-style: normal;
+      }
+      :root {
+        --theme-hue: 200;
+        --bg-color: #16161a;
+        --bg-card: #202024;
+        --text-color: #ffffff;
+        --text-muted: #8a8a8a;
+        --btn-bg: rgba(255, 255, 255, 0.08);
+        --btn-bg-hover: rgba(255, 255, 255, 0.15);
+        --border-color: #2c2c32;
+        --accent-color: hsl(var(--theme-hue), 75%, 70%);
+      }
+      [data-theme="light"] {
+        --bg-color: #f8f9fa;
+        --bg-card: #ffffff;
+        --text-color: #111111;
+        --text-muted: #666666;
+        --btn-bg: rgba(0, 0, 0, 0.06);
+        --btn-bg-hover: rgba(0, 0, 0, 0.12);
+        --border-color: #f1f3f5;
+        --accent-color: hsl(var(--theme-hue), 70%, 58%);
+      }
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: 'Roboto', sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      .card {
+        background-color: var(--bg-card);
+        border-radius: 24px;
+        padding: 40px;
+        width: 100%;
+        max-width: 360px;
+        text-align: center;
+        border: 1px solid var(--border-color);
+      }
+      .title {
+        font-size: 1.5rem;
+        font-weight: 500;
+        letter-spacing: -0.025em;
+        margin-bottom: 24px;
+        text-transform: lowercase;
+      }
+      .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+        text-align: left;
+      }
+      .label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        text-transform: lowercase;
+      }
+      .input {
+        background-color: var(--btn-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 9999px;
+        padding: 12px 20px;
+        color: var(--text-color);
+        outline: none;
+        font-size: 0.95rem;
+        font-family: 'Roboto', sans-serif;
+      }
+      .btn {
+        background-color: var(--accent-color);
+        color: #000000;
+        border: none;
+        border-radius: 9999px;
+        padding: 12px 24px;
+        font-weight: 500;
+        font-size: 0.95rem;
+        cursor: pointer;
+        width: 100%;
+        transition: opacity 0.2s;
+        margin-top: 10px;
+        font-family: 'Roboto', sans-serif;
+      }
+      .btn:hover {
+        opacity: 0.9;
+      }
+      .btn-secondary {
+        background-color: var(--btn-bg);
+        color: var(--text-color);
+        margin-top: 12px;
+        font-family: 'Roboto', sans-serif;
+      }
+      .btn-secondary:hover {
+        background-color: var(--btn-bg-hover);
+      }
+      .error {
+        color: #ef4444;
+        font-size: 0.85rem;
+        margin-bottom: 16px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="title">{t.authTitle}</div>
+      
+      <div id="error-msg" class="error" style="display: none;"></div>
+
+      <form id="auth-form">
+        <div class="input-group">
+          <label class="label">{t.username}</label>
+          <input type="text" id="username" class="input" required />
+        </div>
+        <div class="input-group">
+          <label class="label">{t.password}</label>
+          <input type="password" id="password" class="input" required />
+        </div>
+        
+        <button type="submit" id="submit-btn" class="btn">{t.login}</button>
+        <button type="button" id="toggle-btn" class="btn btn-secondary">{t.createAccount}</button>
+      </form>
+    </div>
+
+    <script define:vars={{ t }}>
+      let mode = 'login';
+      const form = document.getElementById('auth-form');
+      const errorMsg = document.getElementById('error-msg');
+      const submitBtn = document.getElementById('submit-btn');
+      const toggleBtn = document.getElementById('toggle-btn');
+
+      toggleBtn.addEventListener('click', () => {
+        if (mode === 'login') {
+          mode = 'signup';
+          submitBtn.innerText = t.signUp;
+          toggleBtn.innerText = t.backToLogin;
+        } else {
+          mode = 'login';
+          submitBtn.innerText = t.login;
+          toggleBtn.innerText = t.createAccount;
+        }
+        errorMsg.style.display = 'none';
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        errorMsg.style.display = 'none';
+
+        try {
+          const res = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: mode, username, password })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            window.location.href = '/';
+          } else {
+            errorMsg.innerText = data.error || t.somethingWentWrong;
+            errorMsg.style.display = 'block';
+          }
+        } catch (err) {
+          errorMsg.innerText = t.connectionError;
+          errorMsg.style.display = 'block';
+        }
+      });
+    </script>
+  </body>
+</html>
