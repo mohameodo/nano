@@ -130,6 +130,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
   const [scraping, setScraping] = useState(false)
   const [msgIndex, setMsgIndex] = useState(0)
   const [subtitles, setSubtitles] = useState<any[]>([])
+  const [qualities, setQualities] = useState<any[]>([])
   const [retryTrigger, setRetryTrigger] = useState(0)
   const [triedServers, setTriedServers] = useState<string[]>([])
   const [serverStatuses, setServerStatuses] = useState<Record<string, "queued" | "checking" | "online" | "error">>(() => {
@@ -311,6 +312,8 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
         setPlayerUrl("")
         setIsDirectPlayer(false)
         setIsM3U8(false)
+        setSubtitles([])
+        setQualities([])
         setTriedServers((prevTried) => {
           const nextTried = [...prevTried, activeServer]
           const nextUntriedServer = SERVERS.find((s) => !nextTried.includes(s.id))
@@ -482,6 +485,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
           setIsDirectPlayer(false)
           setIsM3U8(false)
           setSubtitles([])
+          setQualities([])
           setScraping(false)
           return
         }
@@ -495,6 +499,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
             setIsDirectPlayer(false)
             setIsM3U8(false)
             setSubtitles([])
+            setQualities([])
             setScraping(false)
             return
           }
@@ -617,6 +622,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
         setIsDirectPlayer(data.isDirect || false)
         setIsM3U8(data.isM3U8 || false)
         setSubtitles(data.subtitles || [])
+        setQualities(data.qualities || [])
         setScraping(false)
       } catch (err: any) {
         clearTimeout(timeoutId)
@@ -902,6 +908,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
         showEpisodes={showEpisodes}
         setShowEpisodes={setShowEpisodes}
         subtitles={subtitles}
+        qualities={qualities}
         locale={locale}
         onEnded={handlePlayerEnded}
         onError={handlePlayerError}

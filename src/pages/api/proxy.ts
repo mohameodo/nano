@@ -279,6 +279,21 @@ export const GET: APIRoute = async ({ request }) => {
       }
     }
 
+    const isSrt = targetUrl.toLowerCase().includes(".srt")
+    if (isSrt) {
+      if (!response.ok) return response
+      const srtText = await response.text()
+      const vttText = "WEBVTT\n\n" + srtText.replace(/(\d\d:\d\d:\d\d),(\d\d\d)/g, "$1.$2")
+      const responseHeaders = new Headers()
+      responseHeaders.set("Access-Control-Allow-Origin", "*")
+      responseHeaders.set("Content-Type", "text/vtt")
+      responseHeaders.set("Content-Length", String(Buffer.byteLength(vttText)))
+      return new Response(vttText, {
+        status: 200,
+        headers: responseHeaders,
+      })
+    }
+
     const hasContentEncoding = response.headers.has("content-encoding")
     const responseHeaders = new Headers()
     responseHeaders.set("Access-Control-Allow-Origin", "*")

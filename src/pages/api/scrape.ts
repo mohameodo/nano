@@ -38,6 +38,42 @@ export const GET: APIRoute = async ({ request }) => {
 
   const result = await resolveStream(provider, id, type, season, episode);
 
+  if (result.url && isAllowedStreamUrl(result.url)) {
+    try {
+      const subUrl = type === 'tv' && season && episode
+        ? `https://sub.vdrk.site/v1/tv/${id}/${season}/${episode}`
+        : `https://sub.vdrk.site/v1/movie/${id}`;
+      const subRes = await fetch(subUrl, { signal: AbortSignal.timeout(4000) });
+      if (subRes.ok) {
+        const subData = await subRes.json();
+        if (Array.isArray(subData)) {
+          const fetchedSubs = subData.map((item: any) => {
+            const rawLabel = item.label || 'English';
+            const langCode = rawLabel.toLowerCase().includes('english') ? 'en'
+              : rawLabel.toLowerCase().includes('spanish') ? 'es'
+              : rawLabel.toLowerCase().includes('french') ? 'fr'
+              : rawLabel.toLowerCase().includes('german') ? 'de'
+              : rawLabel.toLowerCase().includes('italian') ? 'it'
+              : rawLabel.toLowerCase().includes('portuguese') ? 'pt'
+              : rawLabel.toLowerCase().substring(0, 2);
+            
+            let src = item.file;
+            if (src && src.toLowerCase().includes('.srt')) {
+              src = `/api/proxy?url=${encodeURIComponent(src)}`;
+            }
+            return {
+              src,
+              label: rawLabel,
+              language: langCode,
+            };
+          }).filter((item: any) => item.src);
+
+          result.subtitles = [...(result.subtitles || []), ...fetchedSubs];
+        }
+      }
+    } catch {}
+  }
+
   if (!result.url || !isAllowedStreamUrl(result.url)) {
     const plugins = getPlugins();
     return new Response(JSON.stringify({ 

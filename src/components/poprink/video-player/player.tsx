@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import Hls from "hls.js"
-import { IoPlay, IoPause } from "react-icons/io5"
+import { IoPlay, IoPause, IoDownload, IoSettings } from "react-icons/io5"
 import { BiSolidVolumeFull } from "react-icons/bi"
 import { ImVolumeMute2 } from "react-icons/im"
 import { RiFullscreenFill, RiFullscreenExitFill } from "react-icons/ri"
@@ -24,6 +24,7 @@ interface PlayerProps {
   showEpisodes?: boolean
   setShowEpisodes?: (show: boolean) => void
   subtitles?: any[]
+  qualities?: Array<{ label: string; url: string }>
 }
 
 interface ProgressBarProps {
@@ -225,6 +226,7 @@ export default function Player({
   showEpisodes = false,
   setShowEpisodes,
   subtitles = [],
+  qualities = [],
 }: PlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -233,6 +235,8 @@ export default function Player({
   const volumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentUrlRef = useRef<string>("")
 
+  const [activeUrl, setActiveUrl] = useState("")
+  const [qualityOpen, setQualityOpen] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -325,8 +329,29 @@ export default function Player({
     setDuration(0)
     setBuffered(0)
     setIsLoading(true)
-    if (embedUrl) attachSource(embedUrl, isM3U8)
+    if (embedUrl) {
+      setActiveUrl(embedUrl)
+      attachSource(embedUrl, isM3U8)
+    }
   }, [embedUrl, isM3U8, attachSource])
+
+  const handleQualitySelect = (url: string) => {
+    if (url === activeUrl) return
+    const video = videoRef.current
+    if (!video) return
+    const prevTime = video.currentTime
+    const prevPlaying = !video.paused
+
+    setActiveUrl(url)
+    attachSource(url, isM3U8)
+
+    const onCanPlay = () => {
+      video.currentTime = prevTime
+      if (prevPlaying) video.play().catch(() => {})
+      video.removeEventListener("canplay", onCanPlay)
+    }
+    video.addEventListener("canplay", onCanPlay)
+  }
 
   useEffect(() => {
     return () => {
@@ -621,6 +646,46 @@ export default function Player({
                 )}
               </div>
             )}
+
+            {qualities.length > 0 && (
+              <div className="nano-server-control" style={{ position: "relative" }}>
+                <button 
+                  className="nano-control-btn" 
+                  onClick={() => setQualityOpen(!qualityOpen)}
+                  title="Select Quality"
+                >
+                  <IoSettings />
+                </button>
+                {qualityOpen && (
+                  <div className="nano-player-dropdown nano-player-dropdown-servers" style={{ bottom: "100%", right: 0 }}>
+                    <div className="nano-dropdown-title">Quality</div>
+                    <div className="nano-dropdown-list">
+                      {qualities.map((q, idx) => (
+                        <button
+                          key={idx}
+                          className={`nano-dropdown-item ${activeUrl === q.url ? "active" : ""}`}
+                          onClick={() => { handleQualitySelect(q.url); setQualityOpen(false) }}
+                        >
+                          {q.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <a
+              href={embedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              className="nano-control-btn"
+              title="Download / Open video link"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+            >
+              <IoDownload />
+            </a>
 
             <button className="nano-control-btn" onClick={toggleFullscreen}>
               {isFullscreen ? <RiFullscreenExitFill /> : <RiFullscreenFill />}

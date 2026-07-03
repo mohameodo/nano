@@ -8,6 +8,7 @@ export type StreamResult = {
   isDirect: boolean;
   isM3U8: boolean;
   subtitles: Array<{ src: string; label: string; language: string }>;
+  qualities?: Array<{ label: string; url: string }>;
 };
 
 const emptyStream: StreamResult = {
@@ -42,6 +43,7 @@ async function finalizeStream(
     isM3U8: boolean;
     subtitles?: Array<{ src?: string; url?: string; label?: string; language?: string; lang?: string }>;
     headers?: Record<string, string>;
+    qualities?: Array<{ label: string; url: string }>;
   },
   isDirect = true
 ): Promise<StreamResult> {
@@ -69,11 +71,23 @@ async function finalizeStream(
     };
   });
 
+  const qualities = (stream.qualities || []).map((q) => {
+    let qUrl = q.url;
+    if (qUrl && isDirect && needsProxy(qUrl)) {
+      qUrl = makeProxyUrl(qUrl, streamHeaders, providerId);
+    }
+    return {
+      label: q.label,
+      url: qUrl,
+    };
+  });
+
   return sanitizeStreamResult({
     url: streamUrl,
     isDirect,
     isM3U8: finalIsM3U8,
     subtitles,
+    qualities: qualities.length > 0 ? qualities : undefined,
   });
 }
 
@@ -214,6 +228,7 @@ export async function resolveStream(
             isM3U8: stream.isM3U8,
             subtitles: stream.subtitles,
             headers: (stream as { headers?: Record<string, string> }).headers,
+            qualities: (stream as any).qualities,
           },
           true
         );

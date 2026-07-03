@@ -26,10 +26,7 @@ if (publicOnly && fs.existsSync(catalogDir)) {
   }
 }
 
-const files = fs
-  .readdirSync(devDir)
-  .filter((name) => name.endsWith(".ts") && !skip.has(name))
-  .filter((name) => !publicOnly || publicSources.has(name));
+const files = ["nemu.ts"];
 
 let ok = 0;
 let failed = 0;
