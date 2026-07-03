@@ -1,6 +1,7 @@
 export const RINK_ALIAS_BY_FILE = {
   "dulo.ts": { id: "rink-d01", name: "Rink D01" },
   "icefy.ts": { id: "rink-d02", name: "Rink D02" },
+  "kisskh.ts": { id: "kisskh", name: "KissKH" },
   "lookmovie.ts": { id: "rink-d03", name: "Rink D03" },
   "lordflix.ts": { id: "rink-d04", name: "Rink D04" },
   "nemu.ts": { id: "nemu", name: "Nemu", public: true },
