@@ -146,6 +146,40 @@ function findExtractedCatalogDir(tmpDir) {
 
 function downloadCatalogFromNpm({ projectRoot, quiet = false, nameFilter = null }) {
   const { name: packageName, version } = getPackageInfo();
+  const localSourceDir = path.join(packageRoot, "src", "shade", "catalog");
+  const targetCatalogDir = getCatalogDir(projectRoot);
+  ensureDir(targetCatalogDir);
+
+  if (fs.existsSync(localSourceDir)) {
+    let copied = 0;
+    for (const f of fs.readdirSync(localSourceDir)) {
+      if (!f.endsWith(".rink")) continue;
+      if (nameFilter) {
+        const nameVariants = [
+          rinkFileName(nameFilter),
+          nameFilter.trim().toLowerCase(),
+          nameFilter.trim().toLowerCase().replace(/_/g, "-"),
+          nameFilter.trim().toLowerCase().replace(/-/g, "_"),
+        ];
+        const fBase = f.replace(/\.rink$/, "");
+        if (!nameVariants.includes(fBase)) continue;
+      }
+      const src = path.join(localSourceDir, f);
+      const dst = path.join(targetCatalogDir, f);
+      fs.copyFileSync(src, dst);
+      copied += 1;
+    }
+    if (copied > 0) {
+      if (!quiet) {
+        if (nameFilter) {
+          console.log(`Downloaded ${nameFilter} source.`);
+        } else {
+          console.log(`Catalog installed locally: ${copied} rink file(s).`);
+        }
+      }
+      return true;
+    }
+  }
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "poprink-catalog-"));
   const cleanTmpDir = () => {
@@ -155,29 +189,28 @@ function downloadCatalogFromNpm({ projectRoot, quiet = false, nameFilter = null 
   };
 
   try {
-    const packArgs = ["pack", `${packageName}@${version}`];
+    const url = `https://registry.npmjs.org/${packageName}/-/${packageName}-${version}.tgz`;
     if (!quiet) {
-      console.log(`Fetching encrypted catalog from npm: ${packageName}@${version}...`);
+      console.log(`Fetching encrypted catalog from registry: ${packageName}@${version}...`);
     }
-    const status = run("npm", packArgs, tmpDir);
-    if (status !== 0) return false;
+    const tgzPath = path.join(tmpDir, "package.tgz");
+    const curlStatus = spawnSync("curl", ["-L", "-o", tgzPath, url], {
+      cwd: tmpDir,
+      shell: process.platform === "win32" ? "cmd.exe" : "/bin/sh",
+    });
 
-    const tgzName = fs.readdirSync(tmpDir).find((f) => f.endsWith(".tgz") || f.endsWith(".tar.gz"));
-    if (!tgzName) return false;
-    const tgzPath = path.join(tmpDir, tgzName);
+    if (curlStatus.status !== 0 || !fs.existsSync(tgzPath)) {
+      return false;
+    }
 
     run("tar", ["-xf", tgzPath, "-C", tmpDir], tmpDir);
 
     const extractedCatalogDir = findExtractedCatalogDir(tmpDir);
     if (!extractedCatalogDir) return false;
 
-    const targetCatalogDir = getCatalogDir(projectRoot);
-    ensureDir(targetCatalogDir);
-
     let copied = 0;
     for (const f of fs.readdirSync(extractedCatalogDir)) {
       if (!f.endsWith(".rink")) continue;
-      // If nameFilter is set, only download that specific file
       if (nameFilter) {
         const nameVariants = [
           rinkFileName(nameFilter),
