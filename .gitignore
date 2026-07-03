@@ -10,8 +10,6 @@ dist
 .vercel
 *.tgz
 
-src/shade/**
-!src/shade/catalog/
 src/shade/catalog/**
 !src/shade/catalog/nemu.rink
 
