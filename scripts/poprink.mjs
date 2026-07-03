@@ -144,7 +144,7 @@ function findExtractedCatalogDir(tmpDir) {
   return null;
 }
 
-function downloadCatalogFromNpm({ projectRoot, quiet = false }) {
+function downloadCatalogFromNpm({ projectRoot, quiet = false, nameFilter = null }) {
   const { name: packageName, version } = getPackageInfo();
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "poprink-catalog-"));
@@ -177,12 +177,29 @@ function downloadCatalogFromNpm({ projectRoot, quiet = false }) {
     let copied = 0;
     for (const f of fs.readdirSync(extractedCatalogDir)) {
       if (!f.endsWith(".rink")) continue;
+      // If nameFilter is set, only download that specific file
+      if (nameFilter) {
+        const nameVariants = [
+          rinkFileName(nameFilter),
+          nameFilter.trim().toLowerCase(),
+          nameFilter.trim().toLowerCase().replace(/_/g, "-"),
+          nameFilter.trim().toLowerCase().replace(/-/g, "_"),
+        ];
+        const fBase = f.replace(/\.rink$/, "");
+        if (!nameVariants.includes(fBase)) continue;
+      }
       const src = path.join(extractedCatalogDir, f);
       const dst = path.join(targetCatalogDir, f);
       fs.copyFileSync(src, dst);
       copied += 1;
     }
-    if (!quiet) console.log(`Catalog installed locally: ${copied} rink file(s).`);
+    if (!quiet) {
+      if (nameFilter) {
+        console.log(`Downloaded ${nameFilter} source.`);
+      } else {
+        console.log(`Catalog installed locally: ${copied} rink file(s).`);
+      }
+    }
     return copied > 0;
   } finally {
     cleanTmpDir();
@@ -196,7 +213,7 @@ function ensureCatalogForName({ projectRoot, name, quiet = false }) {
   const localCatalogFile = resolveCatalogFile(catalogDir, name);
   if (localCatalogFile) return true;
 
-  return downloadCatalogFromNpm({ projectRoot, quiet });
+  return downloadCatalogFromNpm({ projectRoot, quiet, nameFilter: name });
 }
 
 function ensureCatalogForAll({ projectRoot, quiet = false }) {

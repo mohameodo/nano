@@ -661,6 +661,7 @@ html[dir="rtl"] .nano-pet-bubble {
   border: 1px solid color-mix(in srgb, var(--border-color) 35%, transparent);
   transition: border-color 0.2s, background-color 0.2s;
   position: relative;
+  box-shadow: none;
 }
 
 [data-theme="dark"] .nano-wrapper-shader .nano-search-form {
