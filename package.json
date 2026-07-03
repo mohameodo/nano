@@ -1,6 +1,6 @@
 {
   "name": "poprink",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "type": "module",
   "bin": {
     "poprink": "./scripts/poprink.mjs"
