@@ -1,6 +1,6 @@
 {
-  "name": "poprink-nano",
-  "version": "1.0.15",
+  "name": "poprink",
+  "version": "1.0.16",
   "type": "module",
   "bin": {
     "poprink": "./scripts/poprink.mjs"
