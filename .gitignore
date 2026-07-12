@@ -23,6 +23,10 @@ src/shade/private/**
 !src/shade/private/.gitkeep
 
 src/lib/providers/**
+!src/lib/providers/registry.ts
+!src/lib/providers/registry.public.ts
+
+src/lib/providers/registry.private.ts
 
 scripts/rink-aliases.private.mjs
 src/lib/nano/plugin-aliases.private.mjs
