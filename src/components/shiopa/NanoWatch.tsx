@@ -233,23 +233,41 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
   const lastMediaKeyRef = useRef("")
   const playbackFailRef = useRef(false)
   const skipScrapeRef = useRef(false)
+  const scrapeInFlightRef = useRef(false)
+  const activeServerRef = useRef(activeServer)
+  const triedServersRef = useRef(triedServers)
   const currentMediaKey = `${id}-${mediaType}-${currentSeason}-${currentEpisode}`
 
+  useEffect(() => {
+    activeServerRef.current = activeServer
+  }, [activeServer])
+
+  useEffect(() => {
+    triedServersRef.current = triedServers
+  }, [triedServers])
+
   const failScrape = useCallback(() => {
+    const server = activeServerRef.current
     setPlayerUrl("")
     setIsDirectPlayer(false)
     setIsM3U8(false)
     setSubtitles([])
     setQualities([])
     setScraping(false)
+    scrapeInFlightRef.current = false
     setServerStatuses((prev) => ({
       ...prev,
-      [activeServer]: "error"
+      [server]: "error"
     }))
-    setTriedServers((current) => [...new Set([...current, activeServer])])
-  }, [activeServer])
+    setTriedServers((current) => {
+      const next = [...new Set([...current, server])]
+      triedServersRef.current = next
+      return next
+    })
+  }, [])
 
   const tryNextServer = useCallback(() => {
+    const server = activeServerRef.current
     setPlayerUrl("")
     setIsDirectPlayer(false)
     setIsM3U8(false)
@@ -257,34 +275,46 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
     setQualities([])
     setServerStatuses((prev) => ({
       ...prev,
-      [activeServer]: "error"
+      [server]: "error"
     }))
-    const tried = new Set([...triedServers, activeServer])
-    const nextServer = SERVERS.find((server) => !tried.has(server.id))
-    setTriedServers([...tried])
+    const tried = new Set([...triedServersRef.current, server])
+    const nextList = [...tried]
+    triedServersRef.current = nextList
+    setTriedServers(nextList)
+    const nextServer = SERVERS.find((s) => !tried.has(s.id))
     if (nextServer) {
-      addLog(`Server ${activeServer} failed. Trying ${nextServer.id}.`)
+      addLog(`Server ${server} failed. Trying ${nextServer.id}.`)
       playbackFailRef.current = false
+      scrapeInFlightRef.current = false
+      activeServerRef.current = nextServer.id
       setActiveServer(nextServer.id)
       return true
     }
-    addLog(`Server ${activeServer} failed. No servers remain.`)
+    addLog(`Server ${server} failed. No servers remain.`)
     setScraping(false)
+    scrapeInFlightRef.current = false
     return false
-  }, [activeServer, triedServers, addLog])
+  }, [addLog])
 
   const handleSkipServer = useCallback(() => {
     if (!loading && !scraping) return
     setScraping(false)
-    const currentIndex = SERVERS.findIndex((server) => server.id === activeServer)
+    scrapeInFlightRef.current = false
+    const server = activeServerRef.current
+    const currentIndex = SERVERS.findIndex((s) => s.id === server)
     const nextServer = SERVERS[currentIndex + 1]
     if (nextServer) {
-      setTriedServers((current) => [...new Set([...current, activeServer])])
+      setTriedServers((current) => {
+        const next = [...new Set([...current, server])]
+        triedServersRef.current = next
+        return next
+      })
+      activeServerRef.current = nextServer.id
       setActiveServer(nextServer.id)
     } else {
       failScrape()
     }
-  }, [activeServer, failScrape, loading, scraping])
+  }, [failScrape, loading, scraping])
 
   const canSkipServer = SERVERS.length > 1 && (loading || scraping || serverStatuses[activeServer] === "checking")
 
@@ -405,7 +435,9 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
     const isNewMedia = lastMediaKeyRef.current !== currentMediaKey
     if (isNewMedia) {
       lastMediaKeyRef.current = currentMediaKey
+      triedServersRef.current = []
       setTriedServers([])
+      scrapeInFlightRef.current = false
       setServerStatuses(() => {
         const initial: Record<string, "queued" | "checking" | "online" | "error"> = {}
         SERVERS.forEach((s) => {
@@ -414,6 +446,14 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
         return initial
       })
     }
+
+    if (triedServersRef.current.includes(activeServer)) {
+      return
+    }
+    if (scrapeInFlightRef.current) {
+      return
+    }
+    scrapeInFlightRef.current = true
 
     async function fetchScraped() {
       setScraping(true)
@@ -670,19 +710,29 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
         })
         clearTimeout(timeoutId)
 
-        if (cancelled) return
+        if (cancelled) {
+          scrapeInFlightRef.current = false
+          return
+        }
         if (res.status === 403) {
           const blockedData = await res.json().catch(() => null)
           if (blockedData?.challenge) {
             setScraping(false)
+            scrapeInFlightRef.current = false
             window.location.href = blockedData.challenge
             return
           }
           if (blockedData?.blocked) {
             setBlocked(true)
             setScraping(false)
+            scrapeInFlightRef.current = false
             return
           }
+          if (!tryNextServer()) failScrape()
+          return
+        }
+        if (res.status === 429) {
+          addLog(`Provider ${activeServer} rate limited (429). Switching server.`)
           if (!tryNextServer()) failScrape()
           return
         }
@@ -713,6 +763,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
         }))
         if (resolvedProvider !== activeServer && SERVERS.some((s) => s.id === resolvedProvider)) {
           skipScrapeRef.current = true
+          activeServerRef.current = resolvedProvider
           setActiveServer(resolvedProvider)
         }
         setPlayerUrl(data.url)
@@ -721,17 +772,21 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
         setSubtitles(data.subtitles || [])
         setQualities(data.qualities || [])
         setScraping(false)
+        scrapeInFlightRef.current = false
       } catch (err: any) {
         clearTimeout(timeoutId)
         if (!cancelled) {
           addLog(`Scraping exception on ${activeServer}: ${err.message || err}`)
           if (!tryNextServer()) failScrape()
+        } else {
+          scrapeInFlightRef.current = false
         }
       }
     }
     fetchScraped()
     return () => {
       cancelled = true
+      scrapeInFlightRef.current = false
     }
   }, [id, mediaType, currentSeason, currentEpisode, activeServer, retryTrigger, localServerPath, failScrape, tryNextServer])
 

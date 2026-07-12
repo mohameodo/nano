@@ -693,16 +693,13 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
           )}
 
           {runtimeSettings.showTrending && trending.length > 0 && (
-            <>
-              <h2 className="nano-trending-title">Trending Now</h2>
-              <MediaGrid
-                results={trending}
-                t={t}
-                onClick={handleCardClick}
-                getReleaseYear={getReleaseYear}
-                onWatchlistChange={loadLocalLists}
-              />
-            </>
+            <MediaGrid
+              results={trending}
+              t={t}
+              onClick={handleCardClick}
+              getReleaseYear={getReleaseYear}
+              onWatchlistChange={loadLocalLists}
+            />
           )}
 
         </div>
