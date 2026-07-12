@@ -183,7 +183,7 @@ export async function resolveStream(
   const s = type === "tv" ? season : undefined;
   const e = type === "tv" ? episode : undefined;
 
-  const plugins = mergeProviders(getPlugins());
+  const plugins = mergeProviders(await getPlugins());
   const plugin = plugins.find((p) => p.key === providerId);
   if (plugin && plugin.enabled) {
     try {
