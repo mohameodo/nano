@@ -1,3 +1,5 @@
+import { TRANSLATIONS } from "../locales/translations"
+
 interface SeasonInfo {
   season_number: number
   episode_count: number
@@ -22,6 +24,8 @@ interface SettingsProps {
   episodes: EpisodeInfo[]
   handleSeasonChange: (seasonNum: number) => void
   handleEpisodeSelect: (epNum: number) => void
+  onClose?: () => void
+  locale?: string
 }
 
 export default function Settings({
@@ -31,13 +35,43 @@ export default function Settings({
   episodes,
   handleSeasonChange,
   handleEpisodeSelect,
+  onClose,
+  locale = "en",
 }: SettingsProps) {
   if (!info?.seasons || info.seasons.length === 0) return null
 
+  const t = TRANSLATIONS[locale] || TRANSLATIONS.en
+  const label = (key: string, fallback: string, vars?: Record<string, string | number>) => {
+    let value = t[key] || TRANSLATIONS.en?.[key] || fallback
+    if (vars) {
+      for (const [k, v] of Object.entries(vars)) {
+        value = value.replace(`{${k}}`, String(v))
+      }
+    }
+    return value
+  }
+
   return (
-    <div className="nano-sidebar-episodes" style={{ display: "flex", flexDirection: "column", width: "320px", background: "#0a0a0a", borderLeft: "1px solid #1c1c1c", padding: "80px 20px 20px 20px", position: "absolute", right: 0, top: 0, bottom: 0, zIndex: 45 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <span className="nano-sidebar-title" style={{ color: "#fff", fontWeight: 600 }}>Episodes</span>
+    <div
+      className="nano-sidebar-episodes"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        width: "min(320px, 88vw)",
+        background: "#0a0a0a",
+        borderLeft: "1px solid #1c1c1c",
+        padding: "80px 20px 20px 20px",
+        position: "absolute",
+        right: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 45,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "12px" }}>
+        <span className="nano-sidebar-title" style={{ color: "#fff", fontWeight: 600 }}>
+          {label("episodes", "Episodes")}
+        </span>
         <select
           className="nano-season-select"
           value={currentSeason}
@@ -50,16 +84,28 @@ export default function Settings({
             </option>
           ))}
         </select>
+        {onClose && (
+          <button
+            type="button"
+            className="nano-control-btn"
+            onClick={onClose}
+            aria-label={label("setClose", "close")}
+            style={{ width: 36, height: 36 }}
+          >
+            ×
+          </button>
+        )}
       </div>
       <div className="nano-episode-list" style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px" }}>
         {episodes.map((ep) => (
           <button
+            type="button"
             key={ep.episode_number}
             className={`nano-episode-item ${ep.episode_number === currentEpisode ? "nano-episode-item-active" : ""}`}
             onClick={() => handleEpisodeSelect(ep.episode_number)}
             style={{ display: "flex", flexDirection: "column", alignItems: "start" }}
           >
-            <span>Episode {ep.episode_number}</span>
+            <span>{label("episodeLabel", "Episode {n}", { n: ep.episode_number })}</span>
             {ep.name && ep.name.toLowerCase().trim() !== `episode ${ep.episode_number}` && (
               <span style={{ fontSize: "11px", color: "#666", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", width: "100%" }}>
                 {ep.name}

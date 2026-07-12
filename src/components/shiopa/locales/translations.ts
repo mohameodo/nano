@@ -1,4 +1,5 @@
 import { SETTINGS_STRINGS } from "./settings-locales";
+import { PLAYER_STRINGS } from "./player-locales";
 
 const RAW_TRANSLATIONS: Record<string, Record<string, string>> = {
   en: {
@@ -1352,6 +1353,7 @@ export const TRANSLATIONS = Object.fromEntries(
     Object.fromEntries(
       Object.entries({
         ...(SETTINGS_STRINGS[locale] || SETTINGS_STRINGS.en),
+        ...(PLAYER_STRINGS[locale] || PLAYER_STRINGS.en),
         ...values,
       }).map(([key, value]) => [
         key,

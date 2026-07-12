@@ -6,10 +6,12 @@ import { ImVolumeMute2 } from "react-icons/im"
 import { RiFullscreenFill, RiFullscreenExitFill } from "react-icons/ri"
 import { MdDns } from "react-icons/md"
 import { HiMiniRectangleStack } from "react-icons/hi2"
+import { TRANSLATIONS } from "../locales/translations"
 
 interface ServerInfo {
   id: string
   name: string
+  status?: "queued" | "checking" | "online" | "error"
 }
 
 interface PlayerProps {
@@ -25,6 +27,12 @@ interface PlayerProps {
   setShowEpisodes?: (show: boolean) => void
   subtitles?: any[]
   qualities?: Array<{ label: string; url: string }>
+  locale?: string
+  onEnded?: () => void
+  onTimeUpdate?: (time: number) => void
+  onDurationChange?: (duration: number) => void
+  onError?: (error: string) => void
+  onFatalError?: () => void
 }
 
 interface ProgressBarProps {
@@ -32,6 +40,12 @@ interface ProgressBarProps {
   duration: number
   buffered: number
   onSeek: (time: number) => void
+}
+
+function isAppleMobile() {
+  if (typeof navigator === "undefined") return false
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
 }
 
 function ProgressBar({ currentTime, duration, buffered, onSeek }: ProgressBarProps) {
@@ -67,9 +81,7 @@ function ProgressBar({ currentTime, duration, buffered, onSeek }: ProgressBarPro
       if (!result) return
       setHoverTime(result.time)
       setHoverX(result.x)
-      if (isDragging) {
-        onSeek(result.time)
-      }
+      if (isDragging) onSeek(result.time)
     },
     [getTimeFromEvent, isDragging, onSeek]
   )
@@ -79,17 +91,13 @@ function ProgressBar({ currentTime, duration, buffered, onSeek }: ProgressBarPro
       e.preventDefault()
       setIsDragging(true)
       const result = getTimeFromEvent(e)
-      if (result) {
-        onSeek(result.time)
-      }
+      if (result) onSeek(result.time)
     },
     [getTimeFromEvent, onSeek]
   )
 
   const handleMouseLeave = useCallback(() => {
-    if (!isDragging) {
-      setHoverTime(null)
-    }
+    if (!isDragging) setHoverTime(null)
   }, [isDragging])
 
   const handleTouchStart = useCallback(
@@ -168,13 +176,8 @@ function ProgressBar({ currentTime, duration, buffered, onSeek }: ProgressBarPro
   return (
     <div className="nano-progress-container">
       {hoverTime !== null && (
-        <div
-          className="nano-progress-tooltip"
-          style={{ left: hoverX }}
-        >
-          <div className="nano-progress-tooltip-inner">
-            {formatTime(hoverTime)}
-          </div>
+        <div className="nano-progress-tooltip" style={{ left: hoverX }}>
+          <div className="nano-progress-tooltip-inner">{formatTime(hoverTime)}</div>
         </div>
       )}
 
@@ -188,26 +191,11 @@ function ProgressBar({ currentTime, duration, buffered, onSeek }: ProgressBarPro
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div
-          className="nano-progress-buffered"
-          style={{ width: `${bufferedPercent}%` }}
-        />
-
-        <div
-          className="nano-progress-current"
-          style={{ width: `${progress}%` }}
-        />
-
-        <div
-          className="nano-progress-handle"
-          style={{ left: `calc(${progress}% - 6px)` }}
-        />
-
+        <div className="nano-progress-buffered" style={{ width: `${bufferedPercent}%` }} />
+        <div className="nano-progress-current" style={{ width: `${progress}%` }} />
+        <div className="nano-progress-handle" style={{ left: `calc(${progress}% - 6px)` }} />
         {hoverTime !== null && (
-          <div
-            className="nano-progress-hover-line"
-            style={{ left: hoverX }}
-          />
+          <div className="nano-progress-hover-line" style={{ left: hoverX }} />
         )}
       </div>
     </div>
@@ -227,6 +215,12 @@ export default function Player({
   setShowEpisodes,
   subtitles = [],
   qualities = [],
+  locale = "en",
+  onEnded,
+  onTimeUpdate,
+  onDurationChange,
+  onError,
+  onFatalError,
 }: PlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -234,6 +228,18 @@ export default function Player({
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const volumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentUrlRef = useRef<string>("")
+  const appleMobile = isAppleMobile()
+
+  const t = TRANSLATIONS[locale] || TRANSLATIONS.en
+  const label = (key: string, fallback: string, vars?: Record<string, string | number>) => {
+    let value = t[key] || TRANSLATIONS.en?.[key] || fallback
+    if (vars) {
+      for (const [k, v] of Object.entries(vars)) {
+        value = value.replace(`{${k}}`, String(v))
+      }
+    }
+    return value
+  }
 
   const [activeUrl, setActiveUrl] = useState("")
   const [qualityOpen, setQualityOpen] = useState(false)
@@ -253,6 +259,19 @@ export default function Player({
     return url.toLowerCase().includes(".m3u8") || url.toLowerCase().includes("/hls/")
   }, [])
 
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    video.setAttribute("playsinline", "true")
+    video.setAttribute("webkit-playsinline", "true")
+    video.setAttribute("x-webkit-airplay", "deny")
+    video.controls = false
+    video.disablePictureInPicture = true
+    try {
+      ;(video as any).disableRemotePlayback = true
+    } catch {}
+  }, [isDirect, embedUrl])
+
   const attachSource = useCallback((url: string, m3u8Hint?: boolean) => {
     const video = videoRef.current
     if (!video) return
@@ -268,8 +287,9 @@ export default function Player({
     video.load()
 
     const isHlsUrl = m3u8Hint || isHls(url)
+    const canNativeHls = video.canPlayType("application/vnd.apple.mpegurl") !== ""
 
-    if (isHlsUrl && Hls.isSupported()) {
+    if (isHlsUrl && Hls.isSupported() && !appleMobile) {
       const hls = new Hls({
         maxBufferLength: 30,
         maxMaxBufferLength: 180,
@@ -286,20 +306,22 @@ export default function Player({
       hlsRef.current = hls
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad()
-              break
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError()
-              break
-            default:
-              hls.destroy()
-              hlsRef.current = null
-              setIsLoading(false)
-              break
-          }
+        if (!data.fatal) return
+        const msg = `${data.type}:${data.details || "error"}`
+        onError?.(msg)
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR:
+            hls.startLoad()
+            break
+          case Hls.ErrorTypes.MEDIA_ERROR:
+            hls.recoverMediaError()
+            break
+          default:
+            hls.destroy()
+            hlsRef.current = null
+            setIsLoading(false)
+            onFatalError?.()
+            break
         }
       })
 
@@ -314,14 +336,30 @@ export default function Player({
 
       hls.loadSource(url)
       hls.attachMedia(video)
+    } else if (isHlsUrl && canNativeHls) {
+      video.src = url
+      video.addEventListener("loadedmetadata", () => setIsLoading(false), { once: true })
+      video.addEventListener("canplay", () => setIsLoading(false), { once: true })
+      video.addEventListener("playing", () => setIsLoading(false), { once: true })
+      video.addEventListener("error", () => {
+        setIsLoading(false)
+        onError?.("mediaerror:nativehls")
+        onFatalError?.()
+      }, { once: true })
+      video.play().catch(() => {})
     } else {
       video.src = url
       video.addEventListener("loadedmetadata", () => setIsLoading(false), { once: true })
       video.addEventListener("canplay", () => setIsLoading(false), { once: true })
       video.addEventListener("playing", () => setIsLoading(false), { once: true })
+      video.addEventListener("error", () => {
+        setIsLoading(false)
+        onError?.("mediaerror:src")
+        onFatalError?.()
+      }, { once: true })
       video.play().catch(() => {})
     }
-  }, [isHls])
+  }, [appleMobile, isHls, onError, onFatalError])
 
   useEffect(() => {
     setIsPlaying(false)
@@ -360,11 +398,11 @@ export default function Player({
         hlsRef.current = null
       }
       if (videoRef.current) {
-        videoRef.current.src = ""
+        videoRef.current.removeAttribute("src")
+        videoRef.current.load()
       }
-      if (volumeTimeoutRef.current) {
-        clearTimeout(volumeTimeoutRef.current)
-      }
+      if (volumeTimeoutRef.current) clearTimeout(volumeTimeoutRef.current)
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current)
     }
   }, [])
 
@@ -372,53 +410,53 @@ export default function Player({
     setShowControls(true)
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current)
     controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) setShowControls(false)
-    }, 3000)
-  }, [isPlaying])
+      if (isPlaying && !serverOpen && !qualityOpen) setShowControls(false)
+    }, 3500)
+  }, [isPlaying, serverOpen, qualityOpen])
 
   const showControlsNow = useCallback(() => {
     showControlsDelayed()
   }, [showControlsDelayed])
 
-  const hideControls = useCallback(() => {
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current)
-    if (isPlaying) setShowControls(false)
-  }, [isPlaying])
-
   const togglePlay = () => {
     const video = videoRef.current
     if (!video) return
-    if (isPlaying) {
-      video.pause()
-    } else {
+    if (video.paused) {
       video.play().catch(() => {})
+    } else {
+      video.pause()
     }
+    showControlsDelayed()
   }
 
   const handleProgress = () => {
     const video = videoRef.current
     if (!video) return
     if (video.buffered.length > 0) {
-      const end = video.buffered.end(video.buffered.length - 1)
-      setBuffered(end)
+      setBuffered(video.buffered.end(video.buffered.length - 1))
     }
   }
 
   const handleTimeUpdate = () => {
     if (!videoRef.current) return
-    setCurrentTime(videoRef.current.currentTime)
+    const time = videoRef.current.currentTime
+    setCurrentTime(time)
+    onTimeUpdate?.(time)
     handleProgress()
   }
 
   const handleDurationChange = () => {
     if (!videoRef.current) return
-    setDuration(videoRef.current.duration)
+    const next = videoRef.current.duration
+    setDuration(next)
+    onDurationChange?.(next)
   }
 
   const handleSeek = (time: number) => {
     if (!videoRef.current) return
     videoRef.current.currentTime = time
     setCurrentTime(time)
+    showControlsDelayed()
   }
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -439,19 +477,46 @@ export default function Player({
     setIsMuted(nextMuted)
   }
 
+  const exitCssFullscreen = () => {
+    containerRef.current?.classList.remove("nano-player-ios-fs")
+    document.documentElement.classList.remove("nano-ios-fs-active")
+    document.body.classList.remove("nano-ios-fs-active")
+  }
+
+  const enterCssFullscreen = () => {
+    containerRef.current?.classList.add("nano-player-ios-fs")
+    document.documentElement.classList.add("nano-ios-fs-active")
+    document.body.classList.add("nano-ios-fs-active")
+  }
+
   const toggleFullscreen = () => {
     if (!containerRef.current) return
-    const video = videoRef.current as any
     const container = containerRef.current as any
-    const isCurrentlyFullscreen = !!document.fullscreenElement || !!(document as any).webkitFullscreenElement || !!video?.webkitDisplayingFullscreen
+
+    if (appleMobile) {
+      if (isFullscreen) {
+        exitCssFullscreen()
+        setIsFullscreen(false)
+      } else {
+        enterCssFullscreen()
+        setIsFullscreen(true)
+        try {
+          ;(screen.orientation as any)?.lock?.("landscape")
+        } catch {}
+      }
+      showControlsDelayed()
+      return
+    }
+
+    const isCurrentlyFullscreen =
+      !!document.fullscreenElement ||
+      !!(document as any).webkitFullscreenElement
 
     if (isCurrentlyFullscreen) {
       if (document.exitFullscreen) {
         document.exitFullscreen().catch(() => {})
       } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen()
-      } else if (video?.webkitExitFullscreen) {
-        video.webkitExitFullscreen()
+        ;(document as any).webkitExitFullscreen()
       }
       try {
         screen.orientation?.unlock?.()
@@ -460,41 +525,49 @@ export default function Player({
     } else {
       if (container.requestFullscreen) {
         container.requestFullscreen().catch(() => {
-          if (video?.webkitEnterFullscreen) {
-            video.webkitEnterFullscreen()
-          }
+          enterCssFullscreen()
+          setIsFullscreen(true)
         })
       } else if (container.webkitRequestFullscreen) {
         container.webkitRequestFullscreen()
-      } else if (video?.webkitEnterFullscreen) {
-        video.webkitEnterFullscreen()
+      } else {
+        enterCssFullscreen()
+        setIsFullscreen(true)
       }
       try {
-        (screen.orientation as any)?.lock?.("landscape")
+        ;(screen.orientation as any)?.lock?.("landscape")
       } catch {}
       setIsFullscreen(true)
     }
+    showControlsDelayed()
   }
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      const fs = !!document.fullscreenElement || !!(document as any).webkitFullscreenElement || !!(videoRef.current as any)?.webkitDisplayingFullscreen
+      const fs =
+        !!document.fullscreenElement ||
+        !!(document as any).webkitFullscreenElement ||
+        !!containerRef.current?.classList.contains("nano-player-ios-fs")
       setIsFullscreen(fs)
+      if (!fs) exitCssFullscreen()
     }
     document.addEventListener("fullscreenchange", handleFullscreenChange)
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange)
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange)
       document.removeEventListener("webkitfullscreenchange", handleFullscreenChange)
+      exitCssFullscreen()
     }
   }, [])
 
   const handleVolumeMouseEnter = () => {
+    if (appleMobile) return
     if (volumeTimeoutRef.current) clearTimeout(volumeTimeoutRef.current)
     setShowVolumeSlider(true)
   }
 
   const handleVolumeMouseLeave = () => {
+    if (appleMobile) return
     volumeTimeoutRef.current = setTimeout(() => {
       setShowVolumeSlider(false)
     }, 300)
@@ -528,22 +601,36 @@ export default function Player({
   return (
     <div
       ref={containerRef}
-      className="nano-player-container"
+      className={`nano-player-container ${showControls ? "nano-player-controls-active" : ""}`}
       onMouseMove={showControlsNow}
-      onMouseLeave={() => hideControls()}
+      onMouseLeave={() => {
+        if (isPlaying && !serverOpen && !qualityOpen) setShowControls(false)
+      }}
       onClick={showControlsNow}
       onTouchStart={showControlsNow}
-      onTouchEnd={() => hideControls()}
+      onTouchEnd={showControlsDelayed}
     >
       <video
         ref={videoRef}
         className="nano-video-element"
-        onClick={togglePlay}
-        onPlay={() => { setIsPlaying(true); showControlsDelayed() }}
+        playsInline
+        controls={false}
+        disablePictureInPicture
+        controlsList="nodownload nofullscreen noremoteplayback"
+        preload="auto"
+        onClick={(e) => {
+          e.stopPropagation()
+          togglePlay()
+        }}
+        onPlay={() => {
+          setIsPlaying(true)
+          showControlsDelayed()
+        }}
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={handleTimeUpdate}
         onDurationChange={handleDurationChange}
         onProgress={handleProgress}
+        onEnded={() => onEnded?.()}
         onWaiting={() => setIsLoading(true)}
         onPlaying={() => setIsLoading(false)}
         onCanPlay={() => setIsLoading(false)}
@@ -569,7 +656,11 @@ export default function Player({
         </div>
       )}
 
-      <div className={`nano-player-controls ${showControls ? "nano-player-controls-visible" : ""}`}>
+      <div
+        className={`nano-player-controls ${showControls ? "nano-player-controls-visible" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+      >
         <div className="nano-player-controls-top">
           {title && <span className="nano-player-title">{title}</span>}
         </div>
@@ -582,32 +673,34 @@ export default function Player({
         />
 
         <div className="nano-controls-row">
-          <button className="nano-control-btn" onClick={togglePlay}>
+          <button type="button" className="nano-control-btn" onClick={togglePlay} aria-label={isPlaying ? "Pause" : "Play"}>
             {isPlaying ? <IoPause /> : <IoPlay />}
           </button>
 
-          <div
-            className="nano-volume-container"
-            onMouseEnter={handleVolumeMouseEnter}
-            onMouseLeave={handleVolumeMouseLeave}
-          >
-            <button className="nano-control-btn" onClick={toggleMute}>
-              {isMuted || volume === 0 ? <ImVolumeMute2 /> : <BiSolidVolumeFull />}
-            </button>
+          {!appleMobile && (
+            <div
+              className="nano-volume-container"
+              onMouseEnter={handleVolumeMouseEnter}
+              onMouseLeave={handleVolumeMouseLeave}
+            >
+              <button type="button" className="nano-control-btn" onClick={toggleMute}>
+                {isMuted || volume === 0 ? <ImVolumeMute2 /> : <BiSolidVolumeFull />}
+              </button>
 
-            <div className={`nano-volume-slider-wrapper ${showVolumeSlider ? "visible" : ""}`}>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={isMuted ? 0 : volume}
-                onChange={handleVolumeChange}
-                className="nano-volume-slider"
-                style={{ "--volume-percent": `${(isMuted ? 0 : volume) * 100}%` } as React.CSSProperties}
-              />
+              <div className={`nano-volume-slider-wrapper ${showVolumeSlider ? "visible" : ""}`}>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={isMuted ? 0 : volume}
+                  onChange={handleVolumeChange}
+                  className="nano-volume-slider"
+                  style={{ "--volume-percent": `${(isMuted ? 0 : volume) * 100}%` } as React.CSSProperties}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <span className="nano-player-time">
             {formatTime(currentTime)} / {formatTime(duration)}
@@ -616,8 +709,10 @@ export default function Player({
           <div className="nano-controls-right">
             {isTv && setShowEpisodes && (
               <button
+                type="button"
                 className={`nano-control-btn ${showEpisodes ? "active" : ""}`}
                 onClick={() => setShowEpisodes(!showEpisodes)}
+                aria-label={label("episodes", "Episodes")}
               >
                 <HiMiniRectangleStack />
               </button>
@@ -625,18 +720,22 @@ export default function Player({
 
             {servers.length > 0 && setActiveServer && (
               <div className="nano-server-control">
-                <button className="nano-control-btn" onClick={() => setServerOpen(!serverOpen)}>
+                <button type="button" className="nano-control-btn" onClick={() => setServerOpen(!serverOpen)}>
                   <MdDns />
                 </button>
                 {serverOpen && (
                   <div className="nano-player-dropdown nano-player-dropdown-servers">
-                    <div className="nano-dropdown-title">Servers</div>
+                    <div className="nano-dropdown-title">{label("playerServers", "Servers")}</div>
                     <div className="nano-dropdown-list">
                       {servers.map((server) => (
                         <button
+                          type="button"
                           key={server.id}
                           className={`nano-dropdown-item ${activeServer === server.id ? "active" : ""}`}
-                          onClick={() => { setActiveServer(server.id); setServerOpen(false) }}
+                          onClick={() => {
+                            setActiveServer(server.id)
+                            setServerOpen(false)
+                          }}
                         >
                           {server.name}
                         </button>
@@ -649,22 +748,27 @@ export default function Player({
 
             {qualities.length > 0 && (
               <div className="nano-server-control" style={{ position: "relative" }}>
-                <button 
-                  className="nano-control-btn" 
+                <button
+                  type="button"
+                  className="nano-control-btn"
                   onClick={() => setQualityOpen(!qualityOpen)}
-                  title="Select Quality"
+                  aria-label={label("playerQuality", "Quality")}
                 >
                   <IoSettings />
                 </button>
                 {qualityOpen && (
                   <div className="nano-player-dropdown nano-player-dropdown-servers" style={{ bottom: "100%", right: 0 }}>
-                    <div className="nano-dropdown-title">Quality</div>
+                    <div className="nano-dropdown-title">{label("playerQuality", "Quality")}</div>
                     <div className="nano-dropdown-list">
                       {qualities.map((q, idx) => (
                         <button
+                          type="button"
                           key={idx}
                           className={`nano-dropdown-item ${activeUrl === q.url ? "active" : ""}`}
-                          onClick={() => { handleQualitySelect(q.url); setQualityOpen(false) }}
+                          onClick={() => {
+                            handleQualitySelect(q.url)
+                            setQualityOpen(false)
+                          }}
                         >
                           {q.label}
                         </button>
@@ -681,13 +785,13 @@ export default function Player({
               rel="noopener noreferrer"
               download
               className="nano-control-btn"
-              title="Download / Open video link"
+              aria-label={label("playerDownload", "Download")}
               style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
             >
               <IoDownload />
             </a>
 
-            <button className="nano-control-btn" onClick={toggleFullscreen}>
+            <button type="button" className="nano-control-btn" onClick={toggleFullscreen}>
               {isFullscreen ? <RiFullscreenExitFill /> : <RiFullscreenFill />}
             </button>
           </div>

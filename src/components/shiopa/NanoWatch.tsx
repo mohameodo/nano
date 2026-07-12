@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import "./nano.css"
-import { Player, Controls, Settings } from "@rinko67/rinke"
-import "@rinko67/rinke/dist/index.css"
+import { Player, Controls, Settings } from "./video-player"
 import { providerList } from "../../lib/nano/nano.shiopa"
 import { shiopaConfig } from "./config.shiopa"
 import { TRANSLATIONS } from "./locales/translations"
@@ -304,6 +303,16 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
   }, [locale])
 
   const messages = ["shiopa", TRANSLATIONS[locale]?.searching || "searching", TRANSLATIONS[locale]?.loading || "loading"]
+  const t = TRANSLATIONS[locale] || TRANSLATIONS.en
+  const tr = (key: string, fallback: string, vars?: Record<string, string | number>) => {
+    let value = t[key] || TRANSLATIONS.en?.[key] || fallback
+    if (vars) {
+      for (const [k, v] of Object.entries(vars)) {
+        value = value.replace(`{${k}}`, String(v))
+      }
+    }
+    return value
+  }
 
   useEffect(() => {
     if (!loading && !scraping) return
@@ -818,7 +827,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
               cursor: "pointer",
             }}
           >
-            Skip Server
+            {tr("skipServer", "Skip Server")}
           </button>
         )}
         {posterUrl && (
@@ -906,19 +915,24 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
     }
   }
 
+  const displayTitle =
+    mediaType === "tv"
+      ? `${info?.title || ""} - ${tr("seasonEpisode", "Season {s} Episode {e}", { s: currentSeason, e: currentEpisode })}`
+      : info?.title || ""
+
   const renderPlayerContent = () => {
     if (localFolderNeedsSetup) {
       return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", backgroundColor: "#0a0a0a", color: "#fff", gap: "16px", padding: "20px" }}>
-          <h2 style={{ fontSize: "20px", fontWeight: 600 }}>Local Folder Setup</h2>
+          <h2 style={{ fontSize: "20px", fontWeight: 600 }}>{tr("localFolderSetup", "Local Folder Setup")}</h2>
           <p style={{ fontSize: "14px", opacity: 0.7, maxWidth: "450px", textAlign: "center" }}>
-            Select the local folder containing your video files and a <code>rink.json</code> configuration.
+            {tr("localFolderSetupDesc", "Select the local folder containing your video files and a rink.json configuration.")}
           </p>
           <button 
             onClick={handleConnectFolder}
             style={{ padding: "12px 24px", fontSize: "14px", fontWeight: 600, backgroundColor: "var(--accent-color)", color: "#000", border: "none", borderRadius: "8px", cursor: "pointer" }}
           >
-            Select Local Folder
+            {tr("selectLocalFolder", "Select Local Folder")}
           </button>
           {localFolderError && <p style={{ color: "#ff4a4a", fontSize: "13px" }}>{localFolderError}</p>}
         </div>
@@ -928,13 +942,13 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
     if (localFolderError) {
       return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", backgroundColor: "#0a0a0a", color: "#fff", gap: "16px", padding: "20px" }}>
-          <h2 style={{ fontSize: "20px", fontWeight: 600 }}>Local Library Error</h2>
+          <h2 style={{ fontSize: "20px", fontWeight: 600 }}>{tr("localLibraryError", "Local Library Error")}</h2>
           <p style={{ color: "#ff4a4a", fontSize: "14px", textAlign: "center", maxWidth: "450px" }}>{localFolderError}</p>
           <button 
             onClick={handleConnectFolder}
             style={{ padding: "10px 20px", fontSize: "13px", fontWeight: 600, backgroundColor: "rgba(255,255,255,0.08)", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer" }}
           >
-            Change Local Folder
+            {tr("changeLocalFolder", "Change Local Folder")}
           </button>
         </div>
       )
@@ -944,9 +958,9 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
       const otherServers = SERVERS.filter(s => s.id !== activeServer);
       return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", backgroundColor: "#0a0a0a", color: "#fff", gap: "20px", padding: "20px" }}>
-          <div style={{ fontSize: "18px", fontWeight: 600, color: "var(--accent-color)" }}>No stream available</div>
+          <div style={{ fontSize: "18px", fontWeight: 600, color: "var(--accent-color)" }}>{tr("noStreamAvailable", "No stream available")}</div>
           <p style={{ fontSize: "14px", opacity: 0.7, maxWidth: "420px", textAlign: "center", margin: 0, lineHeight: 1.5 }}>
-            We couldn't resolve a streaming source on <strong>{SERVERS.find(s => s.id === activeServer)?.name || activeServer}</strong>.
+            {tr("noStreamDesc", "We couldn't resolve a streaming source on {server}.", { server: SERVERS.find(s => s.id === activeServer)?.name || activeServer })}
           </p>
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center", marginTop: "8px" }}>
             <button
@@ -966,7 +980,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
                 transition: "background-color 0.2s"
               }}
             >
-              Try Again
+              {tr("tryAgain", "Try Again")}
             </button>
             {otherServers.map(server => (
               <button
@@ -984,7 +998,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
                   transition: "background-color 0.2s"
                 }}
               >
-                Use {server.name}
+                {tr("useServer", "Use {name}", { name: server.name })}
               </button>
             ))}
           </div>
@@ -1019,11 +1033,6 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
     )
   }
 
-  const displayTitle =
-    mediaType === "tv"
-      ? `${info?.title || ""} - Season ${currentSeason} Episode ${currentEpisode}`
-      : info?.title || ""
-
   const serversWithStatus = SERVERS.map((s) => ({
     ...s,
     status: serverStatuses[s.id] || "queued",
@@ -1049,7 +1058,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
             cursor: 'pointer',
           }}
         >
-          Skip Server
+          {tr("skipServer", "Skip Server")}
         </button>
       )}
       <Controls
@@ -1061,6 +1070,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
         showEpisodes={showEpisodes}
         setShowEpisodes={setShowEpisodes}
         hideExtra={false}
+        locale={locale}
       />
 
       <div className="nano-watch-content" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
@@ -1074,6 +1084,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
             handleSeasonChange={handleSeasonChange}
             handleEpisodeSelect={handleEpisodeSelect}
             onClose={() => setShowEpisodes(false)}
+            locale={locale}
           />
         )}
       </div>

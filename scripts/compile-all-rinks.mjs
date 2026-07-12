@@ -26,34 +26,38 @@ if (publicOnly && fs.existsSync(catalogDir)) {
   }
 }
 
-const files = fs
-  .readdirSync(devDir)
-  .filter((name) => name.endsWith(".ts") && !skip.has(name))
-  .filter((name) => !publicOnly || publicSources.has(name));
+if (!fs.existsSync(devDir)) {
+  console.log("No src/shade/dev; skipping rink compile (using existing catalog).");
+} else {
+  const files = fs
+    .readdirSync(devDir)
+    .filter((name) => name.endsWith(".ts") && !skip.has(name))
+    .filter((name) => !publicOnly || publicSources.has(name));
 
-let ok = 0;
-let failed = 0;
+  let ok = 0;
+  let failed = 0;
 
-for (const file of files) {
-  const alias = RINK_ALIAS_BY_FILE[file];
-  if (!alias) {
-    console.error(`No alias mapping for ${file}`);
-    failed += 1;
-    continue;
+  for (const file of files) {
+    const alias = RINK_ALIAS_BY_FILE[file];
+    if (!alias) {
+      console.error(`No alias mapping for ${file}`);
+      failed += 1;
+      continue;
+    }
+
+    const src = path.join(devDir, file);
+    const result = spawnSync(
+      process.execPath,
+      [compiler, src, catalogDir, alias.id, alias.name],
+      { cwd: root, stdio: "inherit" }
+    );
+    if (result.status === 0) {
+      ok += 1;
+    } else {
+      failed += 1;
+      console.error(`Failed: ${file}`);
+    }
   }
 
-  const src = path.join(devDir, file);
-  const result = spawnSync(
-    process.execPath,
-    [compiler, src, catalogDir, alias.id, alias.name],
-    { cwd: root, stdio: "inherit" }
-  );
-  if (result.status === 0) {
-    ok += 1;
-  } else {
-    failed += 1;
-    console.error(`Failed: ${file}`);
-  }
+  console.log(`Compiled ${ok} catalog plugin(s), ${failed} failed.`);
 }
-
-console.log(`Compiled ${ok} catalog plugin(s), ${failed} failed.`);

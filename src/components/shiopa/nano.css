@@ -1361,6 +1361,64 @@ html[dir="rtl"][data-theme="light"] .nano-wrapper:not(.nano-wrapper-shader) .nan
   height: 100%;
   object-fit: contain;
   background-color: #000000;
+  -webkit-touch-callout: none;
+}
+
+.nano-video-element::-webkit-media-controls,
+.nano-video-element::-webkit-media-controls-enclosure,
+.nano-video-element::-webkit-media-controls-panel,
+.nano-video-element::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.nano-player-ios-fs {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  z-index: 99999 !important;
+  background: #000 !important;
+  border-radius: 0 !important;
+}
+
+html.nano-ios-fs-active,
+body.nano-ios-fs-active {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.nano-player-controls-active .nano-player-controls,
+.nano-player-controls-visible {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .nano-player-controls {
+    padding-bottom: max(env(safe-area-inset-bottom), 18px);
+  }
+
+  .nano-control-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.25rem;
+  }
+
+  .nano-progress-track {
+    height: 8px;
+  }
+
+  .nano-progress-handle {
+    width: 16px;
+    height: 16px;
+    margin-top: -4px;
+  }
 }
 
 .nano-player-loading-overlay {
