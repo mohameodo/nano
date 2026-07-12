@@ -68,7 +68,7 @@ export function defaultRuntimeSettings(): RuntimeSettings {
     useMixedFancyFont: logo.useMixedFancyFont ?? true,
     showIcon: logo.showIcon ?? false,
     useVidstack: videoPlayer.useVidstack ?? false,
-    defaultServer: videoPlayer.defaultServer || "rei",
+    defaultServer: videoPlayer.defaultServer || "shiopa",
     greetingStyle: logo.greetingStyle || "nano-pet",
     bgStyle: theme.customBg && !theme.bgStyle ? "custom" : theme.bgStyle || "neon-dither",
     themePalette: theme.palette || "color",

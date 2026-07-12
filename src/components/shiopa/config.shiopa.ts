@@ -137,11 +137,11 @@ const configObject: ShiopaConfig = {
     },
     videoPlayer: {
       autoPlay: getEnv("AUTOPLAY", true),
-      defaultServer: getEnv("DEFAULT_SERVER", "rei"),
+      defaultServer: getEnv("DEFAULT_SERVER", "shiopa"),
       useVidstack: getEnv("USE_VIDSTACK", false),
       servers: [
-        { id: "rei", name: "Rei" },
         { id: "shiopa", name: "Shiopa" },
+        { id: "rei", name: "Rei" },
         { id: "yume", name: "Yume" },
         ...((getEnv("DEV", false) || (!isServer && (window as any).__SHIOPA_CONFIG__?.features?.devMode)) ? [
           { id: "momo", name: "Momo" },

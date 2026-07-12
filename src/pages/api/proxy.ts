@@ -156,38 +156,48 @@ export const GET: APIRoute = async ({ request }) => {
 
     for (const [k, v] of Object.entries(resolvedCustomHeaders)) {
       const normKey = normalizeHeaderKey(k)
+      // Don't forward browser-only Client Hints / Sec-Fetch — CDNs often 403 workers that send them.
+      if (normKey.toLowerCase().startsWith("sec-") || normKey === "DNT" || normKey === "Upgrade-Insecure-Requests") {
+        continue
+      }
       headers[normKey] = v
     }
 
-    const clientHeaders = request.headers
-    const clientDest = clientHeaders.get("sec-fetch-dest")
-    const clientMode = clientHeaders.get("sec-fetch-mode")
-
-    let secFetchSite = "cross-site"
-    const refererVal = headers["Referer"]
-    if (refererVal) {
-      try {
-        const refOrigin = new URL(refererVal).origin
-        if (refOrigin === targetUrlObj.origin) {
-          secFetchSite = "same-origin"
-        }
-      } catch {}
+    const rangeHeader = request.headers.get("range")
+    if (rangeHeader) {
+      headers["Range"] = rangeHeader
     }
 
-    headers["Sec-Fetch-Site"] = secFetchSite
-    headers["Sec-Fetch-Mode"] = clientMode || "cors"
+    // Drop any sec-fetch that may have been injected above
+    delete headers["Sec-Fetch-Site"]
+    delete headers["Sec-Fetch-Mode"]
+    delete headers["Sec-Fetch-Dest"]
+    delete headers["DNT"]
+    delete headers["Upgrade-Insecure-Requests"]
 
-    let secFetchDest = clientDest || "empty"
-    if (secFetchDest === "document" || secFetchDest === "nested-document") {
-      secFetchDest = isHlsMediaSegment(targetUrl) ? "video" : "empty"
+    const targetOrigin = targetUrlObj.origin
+    if (!headers["Referer"]) {
+      const inferred = inferStreamOrigin(targetUrl)
+      if (inferred) {
+        headers["Referer"] = inferred.referer
+        headers["Origin"] = inferred.origin
+      } else {
+        headers["Referer"] = `${targetOrigin}/`
+      }
     }
-    headers["Sec-Fetch-Dest"] = secFetchDest
+    if (!headers["Origin"]) {
+      const inferred = inferStreamOrigin(targetUrl)
+      headers["Origin"] = inferred?.origin || targetOrigin
+    }
 
-    if (!headers["DNT"]) {
-      headers["DNT"] = "1"
+    if (targetUrlObj.hostname.includes("eat-peach.sbs") || targetUrlObj.hostname.includes("peachify.top")) {
+      headers["Referer"] = "https://peachify.top/"
+      headers["Origin"] = "https://peachify.top"
     }
-    if (!headers["Upgrade-Insecure-Requests"]) {
-      headers["Upgrade-Insecure-Requests"] = "1"
+
+    if (targetUrlObj.hostname.includes("tiktokcdn.com") || targetUrlObj.hostname.includes("tiktok.com")) {
+      delete headers["Referer"]
+      delete headers["Origin"]
     }
 
     if (targetUrlObj.hostname.includes("dulo.tv")) {
@@ -229,34 +239,19 @@ export const GET: APIRoute = async ({ request }) => {
       }
     }
 
-    const targetOrigin = targetUrlObj.origin
-    if (!headers["Referer"]) {
-      const inferred = inferStreamOrigin(targetUrl)
-      if (inferred) {
-        headers["Referer"] = inferred.referer
-        headers["Origin"] = inferred.origin
-      } else {
-        headers["Referer"] = `${targetOrigin}/`
+    const refererFallbacks: Array<{ referer: string; origin: string }> = []
+    const inferred = inferStreamOrigin(targetUrl)
+    if (inferred) refererFallbacks.push(inferred)
+    if (targetUrlObj.hostname.includes("ironbubble") || targetUrlObj.hostname.includes("vidfast")) {
+      for (const origin of ["https://vidfast.vc", "https://vidfast.pro", "https://vidfast.io", "https://vidfast.pm"]) {
+        refererFallbacks.push({ referer: `${origin}/`, origin })
       }
     }
-    if (!headers["Origin"]) {
-      const inferred = inferStreamOrigin(targetUrl)
-      headers["Origin"] = inferred?.origin || targetOrigin
-    }
-
-    if (targetUrlObj.hostname.includes("eat-peach.sbs") || targetUrlObj.hostname.includes("peachify.top")) {
-      headers["Referer"] = "https://peachify.top/"
-      headers["Origin"] = "https://peachify.top"
-    }
-
-    if (targetUrlObj.hostname.includes("tiktokcdn.com") || targetUrlObj.hostname.includes("tiktok.com")) {
-      delete headers["Referer"]
-      delete headers["Origin"]
-    }
-
-    const rangeHeader = request.headers.get("range")
-    if (rangeHeader) {
-      headers["Range"] = rangeHeader
+    if (targetUrlObj.hostname.includes("b-cdn.net") || targetUrlObj.hostname.includes("vidrock")) {
+      refererFallbacks.push(
+        { referer: "https://vidrock.ru/", origin: "https://vidrock.ru" },
+        { referer: "https://vidrock.net/", origin: "https://vidrock.net" },
+      )
     }
 
     let response = await fetch(targetUrl, {
@@ -264,18 +259,23 @@ export const GET: APIRoute = async ({ request }) => {
       headers,
     })
 
-    if (response.status === 403) {
-      const inferred = inferStreamOrigin(targetUrl)
-      if (inferred && headers["Referer"] !== inferred.referer) {
-        const retryHeaders = { ...headers, Referer: inferred.referer, Origin: inferred.origin }
-        response = await fetch(targetUrl, {
-          method: "GET",
-          headers: retryHeaders,
-        })
-        if (response.ok) {
-          headers["Referer"] = inferred.referer
-          headers["Origin"] = inferred.origin
+    if (response.status === 403 || response.status === 401) {
+      for (const fb of refererFallbacks) {
+        if (headers["Referer"] === fb.referer) continue
+        const retryHeaders = { ...headers, Referer: fb.referer, Origin: fb.origin }
+        const retry = await fetch(targetUrl, { method: "GET", headers: retryHeaders })
+        if (retry.ok || (retry.status !== 403 && retry.status !== 401)) {
+          response = retry
+          headers["Referer"] = fb.referer
+          headers["Origin"] = fb.origin
+          break
         }
+      }
+      // Last resort: no Origin (some CDNs reject worker Origin)
+      if (response.status === 403 || response.status === 401) {
+        const { Origin: _o, ...noOrigin } = headers
+        const retry = await fetch(targetUrl, { method: "GET", headers: noOrigin })
+        if (retry.ok) response = retry
       }
     }
 

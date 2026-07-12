@@ -4,6 +4,9 @@ type OriginPair = { referer: string; origin: string };
 
 const PROVIDER_ORIGINS: Record<string, OriginPair> = {
   vidrock: { referer: "https://vidrock.ru/", origin: "https://vidrock.ru" },
+  yume: { referer: "https://vidrock.ru/", origin: "https://vidrock.ru" },
+  shiopa: { referer: "https://vidfast.vc/", origin: "https://vidfast.vc" },
+  vidfast: { referer: "https://vidfast.vc/", origin: "https://vidfast.vc" },
   videasy: { referer: "https://player.videasy.to/", origin: "https://player.videasy.to" },
   vidzee: { referer: "https://player.vidzee.wtf/", origin: "https://player.vidzee.wtf" },
   vidzeeWorks: { referer: "https://player.vidzee.wtf/", origin: "https://player.vidzee.wtf" },
@@ -18,7 +21,17 @@ const PROVIDER_ORIGINS: Record<string, OriginPair> = {
 
 const HOST_ORIGINS: Array<{ test: (host: string) => boolean } & OriginPair> = [
   {
-    test: (host) => /storyrr+m\.site$/i.test(host),
+    test: (host) => host.includes("b-cdn.net") || host.includes("bunnycdn") || host.includes("bunny"),
+    referer: "https://vidrock.ru/",
+    origin: "https://vidrock.ru",
+  },
+  {
+    test: (host) => host.includes("ironbubble") || host.includes("vidfast"),
+    referer: "https://vidfast.pro/",
+    origin: "https://vidfast.pro",
+  },
+  {
+    test: (host) => host.includes("storyrr") || /storyrr+m\.site$/i.test(host),
     referer: "https://vidrock.ru/",
     origin: "https://vidrock.ru",
   },
