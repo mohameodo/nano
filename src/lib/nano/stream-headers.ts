@@ -7,6 +7,7 @@ const PROVIDER_ORIGINS: Record<string, OriginPair> = {
   yume: { referer: "https://vidrock.ru/", origin: "https://vidrock.ru" },
   shiopa: { referer: "https://vidfast.vc/", origin: "https://vidfast.vc" },
   vidfast: { referer: "https://vidfast.vc/", origin: "https://vidfast.vc" },
+  rei: { referer: "https://streamvaultsrc.click/", origin: "https://streamvaultsrc.click" },
   videasy: { referer: "https://player.videasy.to/", origin: "https://player.videasy.to" },
   vidzee: { referer: "https://player.vidzee.wtf/", origin: "https://player.vidzee.wtf" },
   vidzeeWorks: { referer: "https://player.vidzee.wtf/", origin: "https://player.vidzee.wtf" },
@@ -21,22 +22,25 @@ const PROVIDER_ORIGINS: Record<string, OriginPair> = {
 
 const HOST_ORIGINS: Array<{ test: (host: string) => boolean } & OriginPair> = [
   {
-    test: (host) => host.includes("b-cdn.net") || host.includes("bunnycdn") || host.includes("bunny"),
-    referer: "https://vidrock.ru/",
-    origin: "https://vidrock.ru",
-  },
-  {
     test: (host) => host.includes("ironbubble") || host.includes("vidfast"),
-    referer: "https://vidfast.pro/",
-    origin: "https://vidfast.pro",
+    referer: "https://vidfast.vc/",
+    origin: "https://vidfast.vc",
   },
   {
-    test: (host) => host.includes("storyrr") || /storyrr+m\.site$/i.test(host),
+    test: (host) =>
+      host.includes("workers.dev") ||
+      host.includes("hellstorm") ||
+      host.includes("streamrk"),
     referer: "https://vidrock.ru/",
     origin: "https://vidrock.ru",
   },
   {
-    test: (host) => host.includes("vidrock"),
+    test: (host) => /storyrr+m\.site$/i.test(host),
+    referer: "https://vidrock.ru/",
+    origin: "https://vidrock.ru",
+  },
+  {
+    test: (host) => host.includes("vidrock") || host.includes("b-cdn.net"),
     referer: "https://vidrock.ru/",
     origin: "https://vidrock.ru",
   },
@@ -64,6 +68,11 @@ const HOST_ORIGINS: Array<{ test: (host: string) => boolean } & OriginPair> = [
     test: (host) => host.includes("eat-peach") || host.includes("peachify"),
     referer: "https://peachify.top/",
     origin: "https://peachify.top",
+  },
+  {
+    test: (host) => host.includes("streamvault"),
+    referer: "https://streamvaultsrc.click/",
+    origin: "https://streamvaultsrc.click",
   },
 ];
 

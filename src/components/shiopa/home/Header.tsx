@@ -1,26 +1,7 @@
 import { useRef, useState, useEffect } from "react"
 import { FaUser, FaSun, FaMoon, FaPalette, FaUndo, FaGlobe, FaCheck, FaEyeDropper, FaFolder, FaCog } from "react-icons/fa"
 import { shiopaConfig } from "../config.shiopa"
-
-const LOCALE_LABELS: Record<string, string> = {
-  en: "English",
-  es: "Español",
-  ko: "한국어",
-  ar: "العربية",
-  ja: "日本語",
-  zh: "中文",
-  de: "Deutsch",
-  ru: "Русский",
-  hi: "हिन्दी",
-  th: "ภาษาไทย",
-  pl: "Polski",
-  tl: "Filipino",
-  vi: "Tiếng Việt",
-  nl: "Nederlands",
-  tr: "Türkçe",
-  no: "Norsk",
-  genz: "Gen Z",
-}
+import { LOCALE_LABELS } from "../locales/locale-labels"
 
 function hexToHue(hex: string): number {
   hex = hex.replace(/^#/, "");

@@ -1,53 +1,52 @@
-# shiopa
+# Shiopa
 
-A small, fast site for finding and watching movies and TV shows.
+Shiopa is a small, fast site for finding and watching movies and TV shows.
 
-## Install
+## Quick start
 
-```bash
-npm i -g shiopa
-shiopa clone
-cd shiopa
-shiopa config
-pnpm dev
-```
-
-Or clone from GitHub:
+Pick one package manager:
 
 ```bash
-git clone https://github.com/mohameodo/nano.git shiopa
-cd shiopa
 pnpm install
 pnpm dev
 ```
 
-## Scripts
+```bash
+npm install
+npm run dev
+```
 
-| Command | What it does |
-| --- | --- |
-| `pnpm dev` | Local dev server |
-| `pnpm build` | Production build |
-| `shiopa config` | Interactive `.env` setup |
-| `shiopa clone` | Pull a fresh copy from GitHub |
+```bash
+bun install
+bun run dev
+```
 
-## Configure
+Build for production:
 
-**In the browser:** open home → gear icon → change theme, sources, greeting, and more. Settings save locally.
+```bash
+pnpm build
+```
 
-**On the server:** copy `.env.example` to `.env` for site name, TMDB keys, default source, and theme defaults.
+## Configure the site
 
-See [docs/configure.md](docs/configure.md) for the full guide.
+**Easy way:** open the home page, click the gear next to the theme switch, and flip toggles or pick from dropdowns. Your choices save in the browser.
+
+**Server way:** copy `.env.example` to `.env` and edit values there. Good for site name, TMDB keys, default source, and theme defaults.
+
+Read the full friendly guide in [docs/configure.md](docs/configure.md).
 
 ## Docs
 
-- [Configure](docs/configure.md)
-- [How it works](docs/how-it-works.md)
-- [AGENTS.md](AGENTS.md)
+- [How to configure](docs/configure.md) — plain steps for non-devs
+- [How it works](docs/how-it-works.md) — request flow
+- [AGENTS.md](AGENTS.md) — notes for contributors
 
-## Package
+## CLI
 
-Published on npm as [`shiopa`](https://www.npmjs.com/package/shiopa).
+Install globally:
 
 ```bash
-npm i -g shiopa
+npm i -g shiopa-nano
+shiopa clone
+shiopa config
 ```

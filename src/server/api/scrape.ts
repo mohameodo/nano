@@ -74,12 +74,10 @@ export const GET: APIRoute = async ({ request }) => {
   const type = params.get("type") === "tv" ? "tv" : "movie"
   const season = params.get("season") || "1"
   const episode = params.get("episode") || "1"
-  const requestedProvider = params.get("provider") || params.get("server") || ""
+  const requestedProvider = params.get("provider") || ""
   const configured = shiopaConfig.features.videoPlayer.servers || []
+  const defaultProvider = shiopaConfig.features.videoPlayer.defaultServer || configured[0]?.id || "rei"
   const allowed = new Set(configured.map((server) => server.id))
-  const rawDefault = shiopaConfig.features.videoPlayer.defaultServer || configured[0]?.id || "shiopa"
-  // Never resolve against a default that isn't in the public server list (e.g. stale DEFAULT_SERVER=nemu).
-  const defaultProvider = allowed.has(rawDefault) ? rawDefault : (configured[0]?.id || "shiopa")
   const provider = allowed.has(requestedProvider) ? requestedProvider : defaultProvider
 
   if (!id) return json({ error: "Missing id", url: null }, 400)
@@ -92,13 +90,10 @@ export const GET: APIRoute = async ({ request }) => {
       empty,
     )
     if (!result.url || !isAllowedStreamUrl(result.url)) {
-      const { getPlugins } = await import("../../lib/nano/plugins-loader")
-      const loaded = (await getPlugins()).map((p) => p.key)
       return json({
         error: result.url ? "Blocked stream" : "No stream found",
         url: null,
         provider,
-        debug: { pluginsLoaded: loaded },
       }, 502)
     }
 

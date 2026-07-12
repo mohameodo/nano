@@ -13,6 +13,7 @@ interface NanoPetProps {
   ghostHat?: boolean
   ghostFlying?: boolean
   woozlitApiKey?: string
+  enableGhostAi?: boolean
 }
 
 type PetMood = "normal" | "mad" | "horror"
@@ -56,8 +57,21 @@ export function NanoPet({
   ghostHat: _ghostHat = false,
   ghostFlying = false,
   woozlitApiKey = "",
+  enableGhostAi = false,
 }: NanoPetProps) {
-  const ghostHat = false;
+  const ghostHat = false
+  const ghostAiActive = enableGhostAi || Boolean(woozlitApiKey?.trim())
+
+  const postGhost = useCallback((body: Record<string, unknown>) => {
+    const payload: Record<string, unknown> = { ...body }
+    const userKey = woozlitApiKey?.trim()
+    if (userKey) payload.apiKey = userKey
+    return fetch("/api/ghost", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+  }, [woozlitApiKey])
 
   const svgRef = useRef<SVGSVGElement>(null)
   const hitTimesRef = useRef<number[]>([])
@@ -200,30 +214,24 @@ export function NanoPet({
       return
     }
 
-    if (woozlitApiKey && woozlitApiKey.trim()) {
+    if (ghostAiActive) {
       setApiLoading(true)
       const prompt = searchQuery.trim()
         ? `The user is searching for: "${searchQuery}". Say something cute or react to this.`
         : "Say a cute friendly greeting or a movie fact."
 
-      fetch("/api/ghost", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "system",
-              content: `You are a cute little friendly ghost. Always respond in a very short, cute sentence (max 10 words) in the requested language (locale: ${locale}). Do not yap. No markdown, no emojis.`
-            },
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
-          isCompanion: true
-        })
+      postGhost({
+        messages: [
+          {
+            role: "system",
+            content: `You are a cute little friendly ghost. Always respond in a very short, cute sentence (max 10 words) in the requested language (locale: ${locale}). Do not yap. No markdown, no emojis.`
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        isCompanion: true
       })
       .then((res) => {
         if (!res.ok) {
@@ -250,7 +258,7 @@ export function NanoPet({
       setLineIndex(nextIdx)
       setCustomSpeech(null)
     }
-  }, [horrorActive, madLines, woozlitApiKey, searchQuery, locale, speechLines, lineIndex])
+  }, [horrorActive, madLines, ghostAiActive, postGhost, searchQuery, locale, speechLines, lineIndex])
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -275,25 +283,19 @@ export function NanoPet({
       return
     }
 
-    if (woozlitApiKey && woozlitApiKey.trim()) {
-      fetch("/api/ghost", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "system",
-              content: `You are a cute little friendly ghost. Always respond in a very short, cute sentence (max 10 words) in the requested language (locale: ${locale}). Do not yap. No markdown, no emojis. Do NOT answer the search query, do NOT give recommendations.`
-            },
-            {
-              role: "user",
-              content: `The user searched for: "${searchQuery}". React to this topic in one short sentence.`
-            }
-          ],
-          isCompanion: true
-        })
+    if (ghostAiActive) {
+      postGhost({
+        messages: [
+          {
+            role: "system",
+            content: `You are a cute little friendly ghost. Always respond in a very short, cute sentence (max 10 words) in the requested language (locale: ${locale}). Do not yap. No markdown, no emojis. Do NOT answer the search query, do NOT give recommendations.`
+          },
+          {
+            role: "user",
+            content: `The user searched for: "${searchQuery}". React to this topic in one short sentence.`
+          }
+        ],
+        isCompanion: true
       })
       .then((res) => {
         if (!res.ok) {
@@ -320,7 +322,7 @@ export function NanoPet({
         setCustomSpeech(`searching for "${searchQuery}"? hope it's a good one!`)
       }
     }
-  }, [searchQuery, woozlitApiKey, locale, speechLines, horrorLines])
+  }, [searchQuery, ghostAiActive, postGhost, locale, speechLines, horrorLines])
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -346,25 +348,19 @@ export function NanoPet({
 
       const words = searchQuery.trim().split(/\s+/)
 
-      if (woozlitApiKey && woozlitApiKey.trim() && words.length >= 2) {
-        fetch("/api/ghost", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            messages: [
-              {
-                role: "system",
+      if (ghostAiActive && words.length >= 2) {
+        postGhost({
+          messages: [
+            {
+              role: "system",
                  content: "You are a cute little friendly ghost. The user is typing a description of a movie. In one extremely short sentence (max 12 words), react to it. Do not yap. No markdown, no emojis."
-              },
-              {
-                role: "user",
-                content: `User is typing: "${searchQuery}"`
-              }
-            ],
-            isCompanion: true
-          })
+            },
+            {
+              role: "user",
+              content: `User is typing: "${searchQuery}"`
+            }
+          ],
+          isCompanion: true
         })
         .then(res => {
           if (!res.ok) {
@@ -409,7 +405,7 @@ export function NanoPet({
     }, 650)
 
     return () => clearTimeout(timer)
-  }, [searchQuery, woozlitApiKey])
+  }, [searchQuery, ghostAiActive, postGhost])
 
   useEffect(() => {
     setIsSleeping(false)

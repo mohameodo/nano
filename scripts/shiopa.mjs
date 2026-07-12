@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.join(__dirname, "..");
 const REPO_URL = process.env.POPRINK_REPO || "https://github.com/mohameodo/nano.git";
-const DEFAULT_CLONE_DIR = "shiopa";
+const DEFAULT_CLONE_DIR = "shiopa-nano";
 
 function readJson(filePath) {
   try {
@@ -108,7 +108,7 @@ function countCatalogRinks(catalogDir) {
 function getPackageInfo() {
   const pkg = readJson(path.join(packageRoot, "package.json"));
   return {
-    name: pkg?.name || "shiopa",
+    name: pkg?.name || "shiopa-nano",
     version: pkg?.version || "latest",
   };
 }
@@ -560,7 +560,7 @@ Usage:
 Examples:
   cd ~/Desktop
   shiopa clone
-  cd shiopa
+  cd shiopa-nano
   shiopa config
   shiopa add rink-d01
   shiopa update

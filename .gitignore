@@ -17,17 +17,17 @@ src/shade/catalog/**
 !src/shade/catalog/itsuki.rink
 !src/shade/catalog/rei.rink
 !src/shade/catalog/yume.rink
-!src/shade/catalog/tsuki.rink
 !src/shade/catalog/shiopa.rink
+!src/shade/catalog/tsuki.rink
 
 src/shade/private/**
 !src/shade/private/.gitkeep
 
 src/lib/providers/**
 !src/lib/providers/registry.ts
-!src/lib/providers/registry.public.ts
-
-src/lib/providers/registry.private.ts
-
-scripts/rink-aliases.private.mjs
-src/lib/nano/plugin-aliases.private.mjs
+!src/lib/providers/rei.ts
+!src/lib/providers/shiopa.ts
+!src/lib/providers/yume.ts
+!src/lib/providers/utils.ts
+!src/lib/providers/sources.ts
+!src/lib/providers/new-sources.ts

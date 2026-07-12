@@ -78,7 +78,8 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
   const [localItems, setLocalItems] = useState<any[]>([])
   const [adminOpen, setAdminOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [runtimeSettings, setRuntimeSettings] = useState<RuntimeSettings>(() => loadRuntimeSettings())
+  const initialRuntimeSettings = loadRuntimeSettings()
+  const [runtimeSettings, setRuntimeSettings] = useState<RuntimeSettings>(initialRuntimeSettings)
 
   const loadAllLocalItems = async () => {
     let folderItems: any[] = []
@@ -154,39 +155,9 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
     window.location.href = `/watch/${item.id}?type=${item.media_type}`
   }
 
-  const [themeHue, setThemeHue] = useState(() => {
-    if (typeof window !== "undefined") {
-      const val = localStorage.getItem("shiopa-theme-hue")
-      if (val) {
-        const parsed = parseInt(val, 10)
-        if (!isNaN(parsed) && parsed >= 0 && parsed <= 360) {
-          return parsed
-        }
-      }
-      const domHue = document.documentElement.style.getPropertyValue("--theme-hue").trim()
-      if (domHue) {
-        const parsed = parseInt(domHue, 10)
-        if (!isNaN(parsed) && parsed >= 0 && parsed <= 360) {
-          return parsed
-        }
-      }
-    }
-    return shiopaConfig.theme.defaultHue
-  })
+  const [themeHue, setThemeHue] = useState(initialRuntimeSettings.themeHue)
 
-  const [themeMode, setThemeMode] = useState<"dark" | "light">(() => {
-    if (typeof window !== "undefined") {
-      const val = localStorage.getItem("shiopa-theme")
-      if (val === "dark" || val === "light") {
-        return val
-      }
-      const domTheme = document.documentElement.getAttribute("data-theme")
-      if (domTheme === "dark" || domTheme === "light") {
-        return domTheme
-      }
-    }
-    return shiopaConfig.theme.defaultMode
-  })
+  const [themeMode, setThemeMode] = useState<"dark" | "light">(initialRuntimeSettings.themeMode)
 
   useEffect(() => {
     localStorage.setItem("shiopa-theme-hue", themeHue.toString())
@@ -206,12 +177,19 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
   }, [locale])
 
   useEffect(() => {
-    document.documentElement.style.setProperty("--bg-color-config-dark", shiopaConfig.theme.colors.bgDark)
-    document.documentElement.style.setProperty("--bg-color-config-light", shiopaConfig.theme.colors.bgLight)
-    if (shiopaConfig.theme.fontFamily) {
-      document.documentElement.style.setProperty("--site-font", shiopaConfig.theme.fontFamily)
+    document.documentElement.style.setProperty("--bg-color-config-dark", runtimeSettings.bgDark || shiopaConfig.theme.colors.bgDark)
+    document.documentElement.style.setProperty("--bg-color-config-light", runtimeSettings.bgLight || shiopaConfig.theme.colors.bgLight)
+    const font = runtimeSettings.siteFontFamily || shiopaConfig.theme.fontFamily
+    if (font) {
+      document.documentElement.style.setProperty("--site-font", font)
     }
-  }, [])
+  }, [runtimeSettings.bgDark, runtimeSettings.bgLight, runtimeSettings.siteFontFamily])
+
+  useEffect(() => {
+    const r = runtimeSettings.borderRadius ?? 32
+    document.documentElement.style.setProperty("--ui-radius", `${r}px`)
+    document.documentElement.style.setProperty("--ui-radius-pill", r >= 24 ? "9999px" : `${Math.max(Math.round(r * 1.35), 10)}px`)
+  }, [runtimeSettings.borderRadius])
 
   useEffect(() => {
     document.documentElement.setAttribute("data-palette", runtimeSettings.themePalette || shiopaConfig.theme.palette)
@@ -230,7 +208,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
   const [sayingIndex, setSayingIndex] = useState(0)
 
   const slogans = [
-    t[getGreetingKey()] || shiopaConfig.logo.text,
+    t[getGreetingKey()] || runtimeSettings.siteName,
     t.slogan1 || "discover movies & tv shows",
     t.slogan2 || "your minimalist cinema",
     t.slogan3 || "stream instantly no bloat",
@@ -248,7 +226,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
 
   const logoText = runtimeSettings.showGreeting
     ? slogans[sayingIndex]
-    : shiopaConfig.logo.text
+    : runtimeSettings.siteName
 
   useEffect(() => {
     const savedLocale = document.cookie
@@ -317,6 +295,11 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
   const handleThemeModeChange = (mode: "dark" | "light") => {
     setThemeMode(mode)
     updateRuntimeSelect("themeMode", mode)
+  }
+
+  const handleThemeHueChange = (hue: number) => {
+    setThemeHue(hue)
+    updateRuntimeNumber("themeHue", hue)
   }
 
   const renderMixedText = (text: string, isGreeting: boolean = false) => {
@@ -437,15 +420,19 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
     setCurrentUser(undefined)
   }
 
-  const shaderBg = isShaderBgStyle(runtimeSettings.bgStyle || shiopaConfig.theme.bgStyle)
+  const activeBgStyle = runtimeSettings.bgStyle || shiopaConfig.theme.bgStyle
+  const shaderBg = isShaderBgStyle(activeBgStyle)
+  const isCustomBg = activeBgStyle === "custom"
 
-  const bgStyleClass = !shaderBg && runtimeSettings.bgStyle && runtimeSettings.bgStyle !== "none"
-    ? `bg-style-${runtimeSettings.bgStyle}`
+  const bgStyleClass = !shaderBg && !isCustomBg && activeBgStyle && activeBgStyle !== "none"
+    ? `bg-style-${activeBgStyle}`
     : ""
 
-  const wrapperStyle = !shaderBg && shiopaConfig.theme.customBg
+  const customBgUrl = isCustomBg ? (runtimeSettings.customBg || shiopaConfig.theme.customBg) : ""
+
+  const wrapperStyle = isCustomBg && customBgUrl
     ? {
-        backgroundImage: `url(${shiopaConfig.theme.customBg})`,
+        backgroundImage: `url(${customBgUrl})`,
         backgroundSize: "cover",
         backgroundPosition: "center center",
         backgroundRepeat: "no-repeat",
@@ -468,9 +455,9 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
         initialUser={currentUser}
         handleLogout={handleLogout}
         themeHue={themeHue}
-        setThemeHue={setThemeHue}
+        setThemeHue={handleThemeHueChange}
         themeMode={themeMode}
-        setThemeMode={setThemeMode}
+        setThemeMode={handleThemeModeChange}
         locale={locale}
         setLocale={setLocale}
         t={t}
@@ -501,7 +488,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
                   </div>
                 );
               case "icon": {
-                const IconComponent = ICON_MAP[shiopaConfig.logo?.customIcon?.toLowerCase() || ""] || FaFilm;
+                const IconComponent = ICON_MAP[runtimeSettings.customIcon?.toLowerCase() || shiopaConfig.logo?.customIcon?.toLowerCase() || ""] || FaFilm;
                 return (
                   <div className="nano-home-logo-large" style={{ width: sizePx, height: sizePx, display: "flex", justifyContent: "center", alignItems: "center" }}>
                     <IconComponent style={{ fontSize: `calc(${sizePx} * 0.7)`, color: "var(--accent-color)" }} />
@@ -509,9 +496,10 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
                 );
               }
               case "gif": {
-                const customW = shiopaConfig.logo?.customGifWidth;
-                const customH = shiopaConfig.logo?.customGifHeight;
+                const customW = runtimeSettings.customGifWidth || shiopaConfig.logo?.customGifWidth;
+                const customH = runtimeSettings.customGifHeight || shiopaConfig.logo?.customGifHeight;
                 const customMargin = shiopaConfig.logo?.customGifMargin;
+                const gifSrc = runtimeSettings.customGif || shiopaConfig.logo?.customGif || shiopaConfig.metadata.thumbnail;
                 return (
                   <div 
                     className="nano-home-logo-large" 
@@ -525,7 +513,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
                     }}
                   >
                     <img 
-                      src={shiopaConfig.logo?.customGif || shiopaConfig.metadata.thumbnail} 
+                      src={gifSrc}
                       alt="custom" 
                       style={{ width: "100%", height: "100%", objectFit: "contain" }} 
                     />
@@ -544,12 +532,13 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
                       locale={locale}
                       ghostHat={runtimeSettings.ghostHat}
                       ghostFlying={runtimeSettings.ghostFlying}
-                      woozlitApiKey={shiopaConfig.logo.woozlitApiKey}
+                      woozlitApiKey={runtimeSettings.woozlitApiKey}
+                      enableGhostAi={Boolean(runtimeSettings.woozlitApiKey?.trim()) || Boolean(shiopaConfig.features?.enableGhostAi)}
                     />
                   </Suspense>
                 );
               case "logo-and-icon": {
-                const IconComponent = ICON_MAP[shiopaConfig.logo?.customIcon?.toLowerCase() || ""] || FaFilm;
+                const IconComponent = ICON_MAP[runtimeSettings.customIcon?.toLowerCase() || shiopaConfig.logo?.customIcon?.toLowerCase() || ""] || FaFilm;
                 return (
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", marginBottom: "24px" }}>
                     <div className="nano-home-logo-large" style={{ width: "90px", height: "90px", display: "flex", justifyContent: "center", alignItems: "center" }}>
@@ -565,14 +554,14 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
                         textAlign: "center"
                       }}
                     >
-                      {shiopaConfig.logo?.useMixedFancyFont ? renderMixedText(shiopaConfig.logo.text) : <span style={{ color: "var(--text-color)", fontFamily: shiopaConfig.logo?.fontFamily || undefined }}>{shiopaConfig.logo.text}</span>}
+                      {runtimeSettings.useMixedFancyFont ? renderMixedText(runtimeSettings.siteName) : <span style={{ color: "var(--text-color)", fontFamily: runtimeSettings.logoFontFamily || shiopaConfig.logo?.fontFamily || undefined }}>{runtimeSettings.siteName}</span>}
                     </div>
                   </div>
                 );
               }
               case "slogans":
               default:
-                if (shiopaConfig.logo?.showIcon !== false) {
+                if (runtimeSettings.showIcon) {
                   return (
                     <div className="nano-home-logo-large" style={{ width: sizePx, height: sizePx }}>
                       <Logo />
@@ -596,16 +585,16 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
                     <MatrixText
                       text={logoText}
                       renderText={(scrambled) =>
-                        shiopaConfig.logo?.showGreeting ? (
-                          shiopaConfig.logo?.useMixedFancyFont ? (
+                        runtimeSettings.showGreeting ? (
+                          runtimeSettings.useMixedFancyFont ? (
                             renderMixedText(scrambled, true)
                           ) : (
-                            <span style={{ color: "var(--text-color)", fontFamily: shiopaConfig.logo?.fontFamily || undefined }}>{scrambled}</span>
+                            <span style={{ color: "var(--text-color)", fontFamily: runtimeSettings.logoFontFamily || shiopaConfig.logo?.fontFamily || undefined }}>{scrambled}</span>
                           )
-                        ) : shiopaConfig.logo?.useMixedFancyFont ? (
+                        ) : runtimeSettings.useMixedFancyFont ? (
                           renderMixedText(scrambled, false)
                         ) : (
-                          <span style={{ color: "var(--text-color)", fontFamily: shiopaConfig.logo?.fontFamily || undefined }}>{scrambled}</span>
+                          <span style={{ color: "var(--text-color)", fontFamily: runtimeSettings.logoFontFamily || shiopaConfig.logo?.fontFamily || undefined }}>{scrambled}</span>
                         )
                       }
                     />

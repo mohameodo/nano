@@ -69,6 +69,7 @@ export interface ShiopaConfig {
     enableWatchlist?: boolean;
     enableLocalLibrary?: boolean;
     enableLocalLibraryEditing?: boolean;
+    enableGhostAi?: boolean;
     header: {
       showThemeToggle: boolean;
       showColorPicker: boolean;
@@ -137,11 +138,11 @@ const configObject: ShiopaConfig = {
     },
     videoPlayer: {
       autoPlay: getEnv("AUTOPLAY", true),
-      defaultServer: getEnv("DEFAULT_SERVER", "shiopa"),
+      defaultServer: getEnv("DEFAULT_SERVER", "rei"),
       useVidstack: getEnv("USE_VIDSTACK", false),
       servers: [
-        { id: "shiopa", name: "Shiopa" },
         { id: "rei", name: "Rei" },
+        { id: "shiopa", name: "Shiopa" },
         { id: "yume", name: "Yume" },
         ...((getEnv("DEV", false) || (!isServer && (window as any).__SHIOPA_CONFIG__?.features?.devMode)) ? [
           { id: "momo", name: "Momo" },
@@ -167,34 +168,21 @@ const configObject: ShiopaConfig = {
   },
 };
 
-// Stale env like DEFAULT_SERVER=nemu must not point at a removed/private server.
-{
-  const servers = configObject.features.videoPlayer.servers
-  const ids = new Set(servers.map((s) => s.id))
-  if (!ids.has(configObject.features.videoPlayer.defaultServer)) {
-    configObject.features.videoPlayer.defaultServer = servers[0]?.id || "shiopa"
-  }
-}
-
-function clampInjectedConfig(config: ShiopaConfig): ShiopaConfig {
-  const servers = config.features?.videoPlayer?.servers || []
-  const ids = new Set(servers.map((s) => s.id))
-  const current = config.features?.videoPlayer?.defaultServer
-  if (current && !ids.has(current) && servers[0]) {
-    return {
-      ...config,
-      features: {
-        ...config.features,
-        videoPlayer: {
-          ...config.features.videoPlayer,
-          defaultServer: servers[0].id,
-        },
-      },
-    }
-  }
-  return config
-}
 
 export const shiopaConfig: ShiopaConfig = !isServer && (window as any).__SHIOPA_CONFIG__
-  ? clampInjectedConfig((window as any).__SHIOPA_CONFIG__)
+  ? (window as any).__SHIOPA_CONFIG__
   : configObject;
+
+export function getPublicShiopaConfig(config: ShiopaConfig = configObject): ShiopaConfig {
+  return {
+    ...config,
+    logo: {
+      ...config.logo,
+      woozlitApiKey: "",
+    },
+    features: {
+      ...config.features,
+      enableGhostAi: Boolean(config.logo?.woozlitApiKey),
+    },
+  }
+}

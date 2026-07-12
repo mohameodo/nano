@@ -93,10 +93,10 @@ const THEME_MODE_LABELS: Record<string, string> = {
   light: "setOptLight",
 }
 
-const ICON_HINT = "tv, film, music, gamepad, star, heart..."
+const ICON_HINT_KEY = "setIconHint"
 
-function labelFor(t: Record<string, string>, key: string, fallback: string) {
-  return t[key] || fallback
+function labelFor(t: Record<string, string>, key: string, fallback?: string) {
+  return t[key] || fallback || key
 }
 
 function ToggleRow({
@@ -140,12 +140,14 @@ function SubInput({
   onChange,
   placeholder,
   type = "text",
+  autoComplete,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   placeholder?: string
   type?: string
+  autoComplete?: string
 }) {
   return (
     <label className="nano-settings-subfield">
@@ -156,6 +158,7 @@ function SubInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        autoComplete={autoComplete}
       />
     </label>
   )
@@ -202,7 +205,7 @@ export default function SettingsPanel({
   onThemeModeChange,
   locale,
   setLocale,
-  localeOptions = [],
+  localeOptions,
   onClose,
   t,
 }: SettingsPanelProps) {
@@ -239,7 +242,7 @@ export default function SettingsPanel({
             <span>{labelFor(t, "settings", "settings")}</span>
             {appVersion ? <span className="nano-settings-version">v{appVersion}</span> : null}
           </div>
-          <button type="button" className="nano-settings-close" onClick={onClose} aria-label="close">
+          <button type="button" className="nano-settings-close" onClick={onClose} aria-label={labelFor(t, "setClose", "close")}>
             <FaTimes />
           </button>
         </div>
@@ -426,7 +429,7 @@ export default function SettingsPanel({
                   label={labelFor(t, "setCustomIcon", "icon name")}
                   value={settings.customIcon}
                   onChange={(v) => onSelect("customIcon", v)}
-                  placeholder={ICON_HINT}
+                  placeholder={labelFor(t, ICON_HINT_KEY)}
                 />
               </div>
             )}
@@ -440,7 +443,7 @@ export default function SettingsPanel({
             onToggle={() => toggleExpand("siteName")}
           >
             <SubInput
-              label={labelFor(t, "setSiteName", "site name")}
+              label={labelFor(t, "setSiteName")}
               value={settings.siteName}
               onChange={(v) => onSelect("siteName", v)}
               placeholder="shiopa"
@@ -455,16 +458,16 @@ export default function SettingsPanel({
             onToggle={() => toggleExpand("fonts")}
           >
             <SubInput
-              label={labelFor(t, "setSiteFont", "site font")}
+              label={labelFor(t, "setSiteFont")}
               value={settings.siteFontFamily}
               onChange={(v) => onSelect("siteFontFamily", v)}
               placeholder="Outfit, sans-serif"
             />
             <SubInput
-              label={labelFor(t, "setLogoFont", "logo font")}
+              label={labelFor(t, "setLogoFont")}
               value={settings.logoFontFamily}
               onChange={(v) => onSelect("logoFontFamily", v)}
-              placeholder="optional"
+              placeholder={labelFor(t, "setOptional")}
             />
           </ExpandableRow>
 
@@ -500,10 +503,12 @@ export default function SettingsPanel({
             onToggle={() => toggleExpand("woozlit")}
           >
             <SubInput
-              label={labelFor(t, "setWoozlitKey", "api key")}
+              label={labelFor(t, "setWoozlitKey")}
               value={settings.woozlitApiKey}
               onChange={(v) => onSelect("woozlitApiKey", v)}
-              placeholder="optional"
+              placeholder={labelFor(t, "setOptional")}
+              type="password"
+              autoComplete="off"
             />
           </ExpandableRow>
 

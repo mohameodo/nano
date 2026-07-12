@@ -57,9 +57,9 @@ Restart the dev server after you change `.env`.
 ## CLI setup
 
 ```bash
-npm i -g shiopa
+npm i -g shiopa-nano
 shiopa clone
-cd shiopa
+cd shiopa-nano
 shiopa config
 pnpm dev
 ```

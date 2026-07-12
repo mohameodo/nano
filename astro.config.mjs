@@ -5,7 +5,6 @@ import cloudflare from '@astrojs/cloudflare';
 import react from '@astrojs/react';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
-import { rinkPluginLoader } from './scripts/rink-plugin-loader.mjs';
 
 if (process.env.VERCEL) {
   Object.defineProperty(process, 'version', {
@@ -15,8 +14,10 @@ if (process.env.VERCEL) {
   });
 }
 
+const isWorkersBuild = !!(process.env.CF_PAGES || process.env.CLOUDFLARE || process.env.WORKERS_CI);
+
 const getAdapter = () => {
-  if (process.env.CF_PAGES || process.env.CLOUDFLARE || process.env.WORKERS_CI) {
+  if (isWorkersBuild) {
     return cloudflare();
   }
   if (process.env.VERCEL) {
@@ -26,6 +27,20 @@ const getAdapter = () => {
     mode: 'standalone',
   });
 };
+
+const nodeBuiltinExternals = [
+  'pg', 'pg-pool', 'pgpass', 'pg-cloudflare', 'split2',
+  'fscreen', 'fs', 'path', 'events', 'dns', 'stream',
+  'crypto', 'net', 'tls', 'util', 'util/types',
+  'node:fs', 'node:path', 'node:url', 'node:events', 'node:dns', 'node:stream',
+  'node:crypto', 'node:net', 'node:tls', 'node:util',
+  'playwright-core', 'chromium-bidi', 'playwright', /^chromium-bidi\/.*/
+];
+
+// Keep http(s) external for Node/Vercel builds only. On Workers we stub them.
+if (!isWorkersBuild) {
+  nodeBuiltinExternals.push('http', 'https', 'node:http', 'node:https');
+}
 
 export default defineConfig({
   output: 'server',
@@ -38,7 +53,25 @@ export default defineConfig({
       }
     },
     plugins: [
-      rinkPluginLoader(),
+      {
+        name: 'stub-node-builtins-for-workers',
+        enforce: 'pre',
+        resolveId(id) {
+          if (!(process.env.CF_PAGES || process.env.CLOUDFLARE || process.env.WORKERS_CI)) return null
+          if (id === 'node:https' || id === 'https') return '\0nano-stub-https'
+          if (id === 'node:http' || id === 'http') return '\0nano-stub-http'
+          return null
+        },
+        load(id) {
+          if (id === '\0nano-stub-https') {
+            return 'export default {}; export class Agent {}; export const request = () => { throw new Error("node:https unavailable"); }; export const get = request;'
+          }
+          if (id === '\0nano-stub-http') {
+            return 'export default {}; export class Agent {}; export const request = () => { throw new Error("node:http unavailable"); }; export const get = request;'
+          }
+          return null
+        },
+      },
       {
         name: 'uint8array-loader',
         load(id) {
@@ -82,7 +115,14 @@ export default defineConfig({
       }
     ],
     resolve: {
-      alias: {},
+      alias: process.env.CF_PAGES || process.env.CLOUDFLARE || process.env.WORKERS_CI
+        ? {
+            'node:https': fileURLToPath(new URL('./src/lib/nano/node-https-stub.ts', import.meta.url)),
+            'node:http': fileURLToPath(new URL('./src/lib/nano/node-http-stub.ts', import.meta.url)),
+            https: fileURLToPath(new URL('./src/lib/nano/node-https-stub.ts', import.meta.url)),
+            http: fileURLToPath(new URL('./src/lib/nano/node-http-stub.ts', import.meta.url)),
+          }
+        : {},
     },
     optimizeDeps: {
       include: [
@@ -110,15 +150,7 @@ export default defineConfig({
             return 'vendor';
           },
         },
-        external: [
-          'pg', 'pg-pool', 'pgpass', 'pg-cloudflare', 'split2',
-          'fscreen', 'fs', 'path', 'events', 'dns', 'stream',
-          'crypto', 'net', 'tls', 'util', 'util/types',
-          'node:fs', 'node:path', 'node:url', 'node:events', 'node:dns', 'node:stream',
-          'node:crypto', 'node:net', 'node:tls', 'node:util',
-          'node:http', 'node:https',
-          'playwright-core', 'chromium-bidi', 'playwright', /^chromium-bidi\/.*/
-        ],
+        external: nodeBuiltinExternals,
       },
     },
     ssr: {
@@ -126,15 +158,7 @@ export default defineConfig({
         '@vidstack/react',
         '@vidstack/react/player/layouts/default'
       ],
-      external: [
-        'pg', 'pg-pool', 'pgpass', 'pg-cloudflare', 'split2',
-        'fscreen', 'fs', 'path', 'events', 'dns', 'stream',
-        'crypto', 'net', 'tls', 'util', 'util/types',
-        'node:fs', 'node:path', 'node:url', 'node:events', 'node:dns', 'node:stream',
-        'node:crypto', 'node:net', 'node:tls', 'node:util',
-        'node:http', 'node:https',
-        'playwright-core', 'chromium-bidi', 'playwright', /^chromium-bidi\/.*/
-      ],
+      external: nodeBuiltinExternals,
     },
   },
 });

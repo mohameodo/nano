@@ -2441,8 +2441,7 @@ html[dir="rtl"][data-theme="light"] .nano-wrapper:not(.nano-wrapper-shader) .nan
   max-height: min(82vh, 760px);
   overflow: hidden;
   border-radius: 28px 28px 0 0;
-  background: var(--bg-color, #0a0a0a);
-  background: color-mix(in srgb, var(--bg-color, #0a0a0a) 92%, transparent);
+  background: color-mix(in srgb, var(--bg-color) 92%, transparent);
   padding: 20px 20px 48px;
   animation: nano-settings-rise 0.28s ease;
 }

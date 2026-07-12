@@ -1,5 +1,5 @@
 services:
-  shiopa:
+  shiopa-nano:
     build:
       context: .
       dockerfile: Dockerfile

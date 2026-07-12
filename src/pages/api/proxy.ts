@@ -8,10 +8,56 @@ function isEnproxyPlaylist(url: string): boolean {
   return u.includes("enproxy") || u.endsWith("seg.html") || (u.includes("/seg") && u.endsWith(".html"))
 }
 
+function isIronbubbleCdnPath(url: string): boolean {
+  try {
+    return new URL(url).pathname.includes("/r2/cdn2/")
+  } catch {
+    return false
+  }
+}
+
+/** Rotating mirror hosts for vidfast segments often CF-block workers; pin to playlist origin. */
+function pinPlaylistCdnHost(segmentUrl: string, playlistUrl: string): string {
+  try {
+    const playlist = new URL(playlistUrl)
+    const segment = new URL(segmentUrl)
+    if (
+      playlist.hostname.includes("ironbubble") &&
+      segment.pathname.includes("/r2/cdn2/") &&
+      segment.hostname !== playlist.hostname
+    ) {
+      segment.protocol = playlist.protocol
+      segment.host = playlist.host
+      return segment.href
+    }
+  } catch {}
+  return segmentUrl
+}
+
+const IRONBUBBLE_FALLBACK_HOSTS = [
+  "moon.ironbubble.site",
+  "moon.ironbubble.com",
+] as const
+
+function ironbubbleFallbackUrls(url: string): string[] {
+  try {
+    const parsed = new URL(url)
+    if (!parsed.pathname.includes("/r2/cdn2/")) return []
+    return IRONBUBBLE_FALLBACK_HOSTS.filter((host) => host !== parsed.hostname).map((host) => {
+      const next = new URL(url)
+      next.host = host
+      return next.href
+    })
+  } catch {
+    return []
+  }
+}
+
 function isHlsMediaSegment(url: string): boolean {
   const u = url.toLowerCase()
   if (isEnproxyPlaylist(url)) return false
   if (u.includes(".m3u8")) return false
+  if (isIronbubbleCdnPath(url)) return true
   return (
     u.endsWith(".ts") ||
     u.includes(".m4s") ||
@@ -68,7 +114,19 @@ function rewriteM3U8(
   originalUrl: string,
   originalHeaders: Record<string, string>,
 ): string {
-  const resolvedHeaders = mergeStreamHeaders("", originalUrl, originalHeaders);
+  const resolvedHeaders = mergeStreamHeaders("", originalUrl, originalHeaders)
+  const lastSlash = originalUrl.lastIndexOf("/")
+  const basePath = lastSlash >= 0 ? originalUrl.substring(0, lastSlash + 1) : originalUrl
+
+  const wrap = (rawUrl: string, asSegment: boolean): string => {
+    const absolute = rawUrl.startsWith("http") ? rawUrl : new URL(rawUrl, basePath).href
+    const pinned = pinPlaylistCdnHost(absolute, originalUrl)
+    const segmentHeaders = mergeStreamHeaders("", pinned, resolvedHeaders)
+    const payload = JSON.stringify({ url: pinned, headers: segmentHeaders })
+    const base64 = Buffer.from(payload).toString("base64")
+    const baseProxy = `/api/proxy?data=${encodeURIComponent(base64)}`
+    return asSegment ? `${baseProxy}&isSegment=true` : baseProxy
+  }
 
   return content
     .split("\n")
@@ -77,77 +135,15 @@ function rewriteM3U8(
       if (!trimmed) return line
 
       if (trimmed.startsWith("#") && trimmed.includes("URI=")) {
-        return line.replace(/URI="([^"]+)"/g, (_match, uri) => {
-          const absoluteUri = uri.startsWith("http") ? uri : new URL(uri, originalUrl).href
-          const segmentHeaders = mergeStreamHeaders("", absoluteUri, resolvedHeaders)
-          const payload = JSON.stringify({ url: absoluteUri, headers: segmentHeaders })
-          const base64 = Buffer.from(payload).toString("base64")
-          return `URI="/api/proxy?data=${encodeURIComponent(base64)}&isSegment=true"`
-        })
+        return line.replace(/URI="([^"]+)"/g, (_match, uri) => `URI="${wrap(uri, true)}"`)
       }
 
       if (trimmed.startsWith("#")) return line
 
-      const absoluteUrl = trimmed.startsWith("http") ? trimmed : new URL(trimmed, originalUrl).href
-      const isPlaylist = isPlaylistUrl(absoluteUrl)
-      const segmentHeaders = mergeStreamHeaders("", absoluteUrl, resolvedHeaders)
-      const payload = JSON.stringify({ url: absoluteUrl, headers: segmentHeaders })
-      const base64 = Buffer.from(payload).toString("base64")
-      const baseProxy = `/api/proxy?data=${encodeURIComponent(base64)}`
-      return isPlaylist ? baseProxy : `${baseProxy}&isSegment=true`
+      const absoluteUrl = trimmed.startsWith("http") ? trimmed : new URL(trimmed, basePath).href
+      return wrap(absoluteUrl, !isPlaylistUrl(absoluteUrl))
     })
     .join("\n")
-}
-
-function isDeadUpstreamBody(text: string, contentType = ""): boolean {
-  const ct = contentType.toLowerCase()
-  const start = text.trimStart().slice(0, 400).toLowerCase()
-  if (
-    ct.includes("text/html") ||
-    start.startsWith("<!doctype") ||
-    start.startsWith("<html") ||
-    start.includes("domain suspended") ||
-    start.includes("not configured") ||
-    start.includes("bunnycdn")
-  ) {
-    return (
-      start.includes("domain suspended") ||
-      start.includes("not configured") ||
-      start.includes("access denied") ||
-      start.includes("bunnycdn") ||
-      start.includes("forbidden")
-    )
-  }
-  if (start.includes("upstream 403") || start.includes("upstream 401") || start.includes("upstream error")) {
-    return true
-  }
-  return false
-}
-
-function tryUnwrapStreamVault(url: string): { url: string; headers: Record<string, string> } | null {
-  try {
-    const parsed = new URL(url)
-    if (!parsed.hostname.includes("streamvault") || !parsed.pathname.includes("stream-proxy")) {
-      return null
-    }
-    const nested = parsed.searchParams.get("u")
-    if (!nested) return null
-    const headers: Record<string, string> = {}
-    const rawH = parsed.searchParams.get("h")
-    if (rawH) {
-      try {
-        const decoded = JSON.parse(rawH)
-        if (decoded && typeof decoded === "object") {
-          for (const [k, v] of Object.entries(decoded)) {
-            if (typeof v === "string") headers[k] = v
-          }
-        }
-      } catch {}
-    }
-    return { url: nested, headers }
-  } catch {
-    return null
-  }
 }
 
 export const GET: APIRoute = async ({ request }) => {
@@ -196,7 +192,7 @@ export const GET: APIRoute = async ({ request }) => {
       (targetUrl ? isHlsMediaSegment(targetUrl) : false)
 
     const targetUrlObj = new URL(targetUrl)
-    let resolvedCustomHeaders = mergeStreamHeaders("", targetUrl, customHeaders)
+    const resolvedCustomHeaders = mergeStreamHeaders("", targetUrl, customHeaders)
     const headers: Record<string, string> = {
       "User-Agent": USER_AGENT,
       Accept: "*/*",
@@ -210,43 +206,6 @@ export const GET: APIRoute = async ({ request }) => {
         continue
       }
       headers[normKey] = v
-    }
-
-    const rangeHeader = request.headers.get("range")
-    if (rangeHeader) {
-      headers["Range"] = rangeHeader
-    }
-
-    // Drop any sec-fetch that may have been injected above
-    delete headers["Sec-Fetch-Site"]
-    delete headers["Sec-Fetch-Mode"]
-    delete headers["Sec-Fetch-Dest"]
-    delete headers["DNT"]
-    delete headers["Upgrade-Insecure-Requests"]
-
-    const targetOrigin = targetUrlObj.origin
-    if (!headers["Referer"]) {
-      const inferred = inferStreamOrigin(targetUrl)
-      if (inferred) {
-        headers["Referer"] = inferred.referer
-        headers["Origin"] = inferred.origin
-      } else {
-        headers["Referer"] = `${targetOrigin}/`
-      }
-    }
-    if (!headers["Origin"]) {
-      const inferred = inferStreamOrigin(targetUrl)
-      headers["Origin"] = inferred?.origin || targetOrigin
-    }
-
-    if (targetUrlObj.hostname.includes("eat-peach.sbs") || targetUrlObj.hostname.includes("peachify.top")) {
-      headers["Referer"] = "https://peachify.top/"
-      headers["Origin"] = "https://peachify.top"
-    }
-
-    if (targetUrlObj.hostname.includes("tiktokcdn.com") || targetUrlObj.hostname.includes("tiktok.com")) {
-      delete headers["Referer"]
-      delete headers["Origin"]
     }
 
     if (targetUrlObj.hostname.includes("dulo.tv")) {
@@ -288,26 +247,48 @@ export const GET: APIRoute = async ({ request }) => {
       }
     }
 
-    const refererFallbacks: Array<{ referer: string; origin: string }> = []
-    const inferred = inferStreamOrigin(targetUrl)
-    if (inferred) refererFallbacks.push(inferred)
-    if (targetUrlObj.hostname.includes("ironbubble") || targetUrlObj.hostname.includes("vidfast")) {
-      for (const origin of ["https://vidfast.vc", "https://vidfast.pro", "https://vidfast.io", "https://vidfast.pm"]) {
-        refererFallbacks.push({ referer: `${origin}/`, origin })
+    const targetOrigin = targetUrlObj.origin
+    if (!headers["Referer"]) {
+      const inferred = inferStreamOrigin(targetUrl)
+      if (inferred) {
+        headers["Referer"] = inferred.referer
+        headers["Origin"] = inferred.origin
+      } else {
+        headers["Referer"] = `${targetOrigin}/`
       }
     }
-    if (targetUrlObj.hostname.includes("b-cdn.net") || targetUrlObj.hostname.includes("vidrock")) {
-      refererFallbacks.push(
-        { referer: "https://vidrock.ru/", origin: "https://vidrock.ru" },
-        { referer: "https://vidrock.net/", origin: "https://vidrock.net" },
-        { referer: "https://vidrock.to/", origin: "https://vidrock.to" },
-      )
+    if (!headers["Origin"]) {
+      const inferred = inferStreamOrigin(targetUrl)
+      headers["Origin"] = inferred?.origin || targetOrigin
     }
-    if (targetUrlObj.hostname.includes("streamvault")) {
-      refererFallbacks.push(
-        { referer: "https://streamvaultsrc.click/", origin: "https://streamvaultsrc.click" },
-        { referer: "https://vidnest.fun/", origin: "https://vidnest.fun" },
-      )
+
+    if (targetUrlObj.hostname.includes("eat-peach.sbs") || targetUrlObj.hostname.includes("peachify.top")) {
+      headers["Referer"] = "https://peachify.top/"
+      headers["Origin"] = "https://peachify.top"
+    }
+
+    if (targetUrlObj.hostname.includes("tiktokcdn.com") || targetUrlObj.hostname.includes("tiktok.com")) {
+      delete headers["Referer"]
+      delete headers["Origin"]
+    }
+
+    const rangeHeader = request.headers.get("range")
+    if (rangeHeader) {
+      headers["Range"] = rangeHeader
+    }
+
+    if (targetUrlObj.hostname.includes("ironbubble") || targetUrlObj.hostname.includes("vidfast") || isIronbubbleCdnPath(targetUrl)) {
+      for (const origin of ["https://vidfast.vc", "https://vidfast.pro", "https://vidfast.io", "https://vidfast.pm"]) {
+        if (!headers["Referer"]) {
+          headers["Referer"] = `${origin}/`
+          headers["Origin"] = origin
+          break
+        }
+      }
+      if (!headers["Referer"]) {
+        headers["Referer"] = "https://vidfast.vc/"
+        headers["Origin"] = "https://vidfast.vc"
+      }
     }
 
     let response = await fetch(targetUrl, {
@@ -316,11 +297,18 @@ export const GET: APIRoute = async ({ request }) => {
     })
 
     if (!response.ok && (response.status === 403 || response.status === 401 || response.status === 404)) {
+      const inferred = inferStreamOrigin(targetUrl)
+      const refererFallbacks: Array<{ referer: string; origin: string }> = []
+      if (inferred) refererFallbacks.push(inferred)
+      if (targetUrlObj.hostname.includes("ironbubble") || targetUrlObj.hostname.includes("vidfast") || isIronbubbleCdnPath(targetUrl)) {
+        for (const origin of ["https://vidfast.vc", "https://vidfast.pro", "https://vidfast.io", "https://vidfast.pm"]) {
+          refererFallbacks.push({ referer: `${origin}/`, origin })
+        }
+      }
       for (const fb of refererFallbacks) {
         if (headers["Referer"] === fb.referer && headers["Origin"] === fb.origin) continue
         const retryHeaders = { ...headers, Referer: fb.referer, Origin: fb.origin }
         const retry = await fetch(targetUrl, { method: "GET", headers: retryHeaders })
-        // Only keep retries that actually succeed — never promote a 404 over a 403.
         if (retry.ok) {
           response = retry
           headers["Referer"] = fb.referer
@@ -328,68 +316,17 @@ export const GET: APIRoute = async ({ request }) => {
           break
         }
       }
-      if (!response.ok) {
-        const noOrigin = { ...headers }
-        delete noOrigin.Origin
-        const retry = await fetch(targetUrl, { method: "GET", headers: noOrigin })
-        if (retry.ok) response = retry
-      }
     }
 
-    // Streamvault often returns 404 "upstream 403" — unwrap nested CDN URL and fetch it ourselves.
-    if (!response.ok) {
-      const unwrap = tryUnwrapStreamVault(targetUrl)
-      if (unwrap) {
-        const nestedHeaders = {
-          ...headers,
-          ...Object.fromEntries(
-            Object.entries(unwrap.headers).map(([k, v]) => [normalizeHeaderKey(k), v]),
-          ),
+    // Vidfast rotating CDN mirrors often CF-block; same path on ironbubble works.
+    if (!response.ok && (response.status === 403 || response.status === 401 || response.status === 404)) {
+      for (const fallbackUrl of ironbubbleFallbackUrls(targetUrl)) {
+        const retry = await fetch(fallbackUrl, { method: "GET", headers })
+        if (retry.ok) {
+          response = retry
+          targetUrl = fallbackUrl
+          break
         }
-        if (!nestedHeaders["Referer"] && unwrap.headers.Referer) {
-          nestedHeaders["Referer"] = unwrap.headers.Referer
-        }
-        if (nestedHeaders["Referer"] && !nestedHeaders["Origin"]) {
-          try {
-            nestedHeaders["Origin"] = new URL(nestedHeaders["Referer"]).origin
-          } catch {}
-        }
-        const nested = await fetch(unwrap.url, { method: "GET", headers: nestedHeaders })
-        if (nested.ok) {
-          response = nested
-          targetUrl = unwrap.url
-          Object.assign(headers, nestedHeaders)
-          resolvedCustomHeaders = mergeStreamHeaders("", targetUrl, {
-            ...customHeaders,
-            ...unwrap.headers,
-          })
-        }
-      }
-    }
-
-    // Dead Bunny / HTML error pages are not playable — tell the player to switch servers.
-    if (!response.ok) {
-      const errType = (response.headers.get("content-type") || "").toLowerCase()
-      let errBody = ""
-      try {
-        errBody = await response.clone().text()
-      } catch {}
-      if (isDeadUpstreamBody(errBody, errType) || response.status === 403 || response.status === 401) {
-        return new Response(
-          JSON.stringify({
-            error: "Upstream CDN rejected stream",
-            deadUpstream: true,
-            status: response.status,
-          }),
-          {
-            status: 502,
-            headers: {
-              "Access-Control-Allow-Origin": "*",
-              "Content-Type": "application/json",
-              "Cache-Control": "no-store",
-            },
-          },
-        )
       }
     }
 
@@ -444,23 +381,6 @@ export const GET: APIRoute = async ({ request }) => {
     if (urlHintM3U8 || needsSniff) {
       const text = await response.text()
       const trimmed = text.trimStart()
-      if (isDeadUpstreamBody(text, contentType)) {
-        return new Response(
-          JSON.stringify({
-            error: "Upstream CDN rejected stream",
-            deadUpstream: true,
-            status: response.status,
-          }),
-          {
-            status: 502,
-            headers: {
-              "Access-Control-Allow-Origin": "*",
-              "Content-Type": "application/json",
-              "Cache-Control": "no-store",
-            },
-          },
-        )
-      }
       const isM3U8ByBody =
         trimmed.startsWith("#EXTM3U") ||
         trimmed.startsWith("#EXT-X-") ||

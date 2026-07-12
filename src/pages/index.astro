@@ -1,16 +1,18 @@
 ---
 import NanoHome from '../components/shiopa/NanoHome';
-import { shiopaConfig } from '../components/shiopa/config.shiopa';
+import { getPublicShiopaConfig, shiopaConfig } from '../components/shiopa/config.shiopa';
 
 const user = Astro.cookies.get('user')?.value;
 if (shiopaConfig.features.enableAuth && !user) {
   return Astro.redirect('/login');
 }
+
+const publicConfig = getPublicShiopaConfig(shiopaConfig);
 ---
 
 <html lang={shiopaConfig.metadata.defaultLocale || 'en'} dir={(shiopaConfig.metadata.defaultLocale || 'en') === 'ar' ? 'rtl' : 'ltr'}>
   <head>
-    <script is:inline define:vars={{ config: shiopaConfig }}>
+    <script is:inline define:vars={{ config: publicConfig }}>
       window.__SHIOPA_CONFIG__ = config;
     </script>
     <meta charset="utf-8" />

@@ -1,15 +1,6 @@
 {
-  "name": "shiopa",
-  "version": "2.0.16",
-  "description": "Search and watch movies and TV shows.",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mohameodo/nano.git"
-  },
-  "homepage": "https://github.com/mohameodo/nano#readme",
-  "bugs": {
-    "url": "https://github.com/mohameodo/nano/issues"
-  },
+  "name": "shiopa-nano",
+  "version": "2.0.15",
   "type": "module",
   "bin": {
     "shiopa": "scripts/shiopa.mjs"

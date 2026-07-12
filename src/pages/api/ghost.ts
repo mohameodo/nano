@@ -26,16 +26,16 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 
-  const apiKey = shiopaConfig.logo.woozlitApiKey;
-  if (!apiKey) {
-    return new Response(JSON.stringify({ error: "Woozlit API key not configured" }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-
   try {
-    const { messages, isCompanion } = await request.json();
+    const { messages, isCompanion, apiKey: bodyApiKey } = await request.json();
+    const userKey = typeof bodyApiKey === "string" ? bodyApiKey.trim() : "";
+    const apiKey = userKey || shiopaConfig.logo.woozlitApiKey;
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "Woozlit API key not configured" }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
     const response = await fetch("https://api.woozlit.com/v1/chat/completions", {
       method: "POST",

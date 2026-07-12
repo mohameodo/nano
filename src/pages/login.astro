@@ -1,6 +1,6 @@
 ---
 import { TRANSLATIONS } from '../components/shiopa/locales/translations';
-import { shiopaConfig } from '../components/shiopa/config.shiopa';
+import { getPublicShiopaConfig, shiopaConfig } from '../components/shiopa/config.shiopa';
 
 const user = Astro.cookies.get('user')?.value;
 if (user) {
@@ -9,11 +9,12 @@ if (user) {
 
 const locale = Astro.cookies.get('shiopa-locale')?.value || shiopaConfig.metadata.defaultLocale || 'en';
 const t = TRANSLATIONS[locale] || TRANSLATIONS.en;
+const publicConfig = getPublicShiopaConfig(shiopaConfig);
 ---
 
 <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
   <head>
-    <script is:inline define:vars={{ config: shiopaConfig }}>
+    <script is:inline define:vars={{ config: publicConfig }}>
       window.__SHIOPA_CONFIG__ = config;
     </script>
     <meta charset="utf-8" />
