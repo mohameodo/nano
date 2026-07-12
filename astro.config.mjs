@@ -112,7 +112,7 @@ export default defineConfig({
           'pg', 'pg-pool', 'pgpass', 'pg-cloudflare', 'split2',
           'fscreen', 'fs', 'path', 'events', 'dns', 'stream',
           'crypto', 'net', 'tls', 'util', 'util/types',
-          'node:fs', 'node:path', 'node:events', 'node:dns', 'node:stream',
+          'node:fs', 'node:path', 'node:url', 'node:events', 'node:dns', 'node:stream',
           'node:crypto', 'node:net', 'node:tls', 'node:util',
           'node:http', 'node:https',
           'playwright-core', 'chromium-bidi', 'playwright', /^chromium-bidi\/.*/
@@ -128,7 +128,7 @@ export default defineConfig({
         'pg', 'pg-pool', 'pgpass', 'pg-cloudflare', 'split2',
         'fscreen', 'fs', 'path', 'events', 'dns', 'stream',
         'crypto', 'net', 'tls', 'util', 'util/types',
-        'node:fs', 'node:path', 'node:events', 'node:dns', 'node:stream',
+        'node:fs', 'node:path', 'node:url', 'node:events', 'node:dns', 'node:stream',
         'node:crypto', 'node:net', 'node:tls', 'node:util',
         'node:http', 'node:https',
         'playwright-core', 'chromium-bidi', 'playwright', /^chromium-bidi\/.*/

@@ -16,8 +16,23 @@ export interface ScraperPlugin {
   } | null>;
 }
 
-import { DEV_KEY_ALIASES } from "./plugin-aliases.mjs";
+import { DEV_KEY_ALIASES as publicAliases } from "./plugin-aliases.mjs";
 import { decryptRink } from "./rink-crypto";
+
+const privateAliasModules = import.meta.env.DEV
+  ? import.meta.glob("./plugin-aliases.private.mjs", { eager: true })
+  : {};
+
+function resolveDevAliases(): typeof publicAliases {
+  if (!import.meta.env.DEV) return publicAliases;
+  for (const path in privateAliasModules) {
+    const mod = privateAliasModules[path] as { DEV_KEY_ALIASES?: typeof publicAliases };
+    if (mod?.DEV_KEY_ALIASES) return { ...publicAliases, ...mod.DEV_KEY_ALIASES };
+  }
+  return publicAliases;
+}
+
+const DEV_KEY_ALIASES = resolveDevAliases();
 
 function applyDevAlias(plugin: ScraperPlugin): ScraperPlugin {
   const alias = DEV_KEY_ALIASES[plugin.key as keyof typeof DEV_KEY_ALIASES];
@@ -42,10 +57,6 @@ function pushPlugin(plugins: ScraperPlugin[], plugin: any, alias: boolean) {
     if (!p?.key) continue;
     plugins.push(alias ? applyDevAlias(p) : p);
   }
-}
-
-function isDevRuntime(): boolean {
-  return import.meta.env.DEV;
 }
 
 export async function getPlugins(): Promise<ScraperPlugin[]> {
