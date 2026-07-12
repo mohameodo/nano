@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: shiopa-nano
+    runtime: node
+    buildCommand: pnpm install && pnpm build
+    startCommand: node dist/server/entry.mjs
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: HOST
+        value: 0.0.0.0
+      - key: TMDB_API_KEY
+        sync: false
+      - key: TMDB_ACCESS_TOKEN
+        sync: false

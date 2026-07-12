@@ -1,0 +1,10 @@
+{
+  "name": "wrangler",
+  "version": "999.0.0",
+  "bin": {
+    "wrangler": "./bin/wrangler.js"
+  },
+  "dependencies": {
+    "wrangler-real": "npm:wrangler@latest"
+  }
+}

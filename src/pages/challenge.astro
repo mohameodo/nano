@@ -1,0 +1,58 @@
+---
+import { createChallengeCookie, verifyTurnstile } from "../protect/sse"
+
+const siteKey = process.env.TURNSTILE_SITE_KEY || (import.meta as any).env?.TURNSTILE_SITE_KEY || ""
+const secretKey = process.env.TURNSTILE_SECRET_KEY || (import.meta as any).env?.TURNSTILE_SECRET_KEY || ""
+const requestedReturn = Astro.url.searchParams.get("return") || "/"
+const returnTo = requestedReturn.startsWith("/") && !requestedReturn.startsWith("//") ? requestedReturn : "/"
+let error = ""
+
+if (!siteKey || !secretKey) {
+  return Astro.redirect(returnTo)
+}
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData()
+  const token = String(form.get("cf-turnstile-response") || "")
+  if (await verifyTurnstile(token, Astro.request)) {
+    return new Response(null, {
+      status: 303,
+      headers: {
+        Location: returnTo,
+        "Set-Cookie": await createChallengeCookie(Astro.request),
+      },
+    })
+  }
+  error = "Verification failed. Please try again."
+}
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Verification</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #050505; color: #f5f5f5; }
+      body { min-height: 100vh; margin: 0; display: grid; place-items: center; }
+      main { width: min(92vw, 420px); padding: 2rem; border: 1px solid #292929; border-radius: 18px; background: #0d0d0d; }
+      h1 { margin: 0 0 .6rem; font-size: 1.35rem; }
+      p { margin: 0 0 1.25rem; color: #aaa; line-height: 1.5; }
+      form { display: grid; gap: 1rem; }
+      button { border: 0; border-radius: 10px; padding: .8rem 1rem; background: #fff; color: #000; font-weight: 700; cursor: pointer; }
+      .error { color: #ff8b8b; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Confirm you are human</h1>
+      <p>This check protects stream resolution from automated abuse.</p>
+      {error && <p class="error">{error}</p>}
+      <form method="post">
+        <div class="cf-turnstile" data-sitekey={siteKey} data-theme="dark"></div>
+        <button type="submit">Continue</button>
+      </form>
+    </main>
+  </body>
+</html>

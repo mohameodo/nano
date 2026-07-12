@@ -1,0 +1,47 @@
+---
+import NanoAdmin from '../components/shiopa/NanoAdmin';
+import { shiopaConfig } from '../components/shiopa/config.shiopa';
+
+const user = Astro.cookies.get('user')?.value;
+if (shiopaConfig.features.enableAuth && !user) {
+  return Astro.redirect('/login');
+}
+---
+
+<html lang={shiopaConfig.metadata.defaultLocale || 'en'} dir={(shiopaConfig.metadata.defaultLocale || 'en') === 'ar' ? 'rtl' : 'ltr'}>
+  <head>
+    <script is:inline define:vars={{ config: shiopaConfig }}>
+      window.__SHIOPA_CONFIG__ = config;
+    </script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href={shiopaConfig.metadata.thumbnail} />
+    <title>local library admin - {shiopaConfig.metadata.title}</title>
+    <script is:inline define:vars={{ defaultTheme: shiopaConfig.theme.defaultMode, defaultHue: shiopaConfig.theme.defaultHue, palette: shiopaConfig.theme.palette, bgDark: shiopaConfig.theme.colors.bgDark, bgLight: shiopaConfig.theme.colors.bgLight }}>
+      (function() {
+        let theme = defaultTheme || 'dark';
+        const savedTheme = localStorage.getItem('shiopa-theme');
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+          theme = savedTheme;
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.setAttribute('data-palette', palette || 'color');
+        document.documentElement.style.setProperty('--bg-color-config-dark', bgDark || '#000000');
+        document.documentElement.style.setProperty('--bg-color-config-light', bgLight || '#ffffff');
+        
+        let hue = defaultHue !== undefined ? defaultHue.toString() : '200';
+        const savedHue = localStorage.getItem('shiopa-theme-hue');
+        if (savedHue) {
+          const parsed = parseInt(savedHue, 10);
+          if (!isNaN(parsed) && parsed >= 0 && parsed <= 360) {
+            hue = parsed.toString();
+          }
+        }
+        document.documentElement.style.setProperty('--theme-hue', hue);
+      })();
+    </script>
+  </head>
+  <body style="margin: 0; background-color: var(--bg-color);">
+    <NanoAdmin client:load initialUser={user} />
+  </body>
+</html>

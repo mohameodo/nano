@@ -1,0 +1,56 @@
+---
+import NanoWatch from '../../components/shiopa/NanoWatch';
+import { shiopaConfig } from '../../components/shiopa/config.shiopa';
+
+const user = Astro.cookies.get('user')?.value;
+if (shiopaConfig.features.enableAuth && !user) {
+  return Astro.redirect('/login');
+}
+
+const { id } = Astro.params;
+const type = Astro.url.searchParams.get('type') || 'movie';
+const season = Astro.url.searchParams.get('season') || '1';
+const episode = Astro.url.searchParams.get('episode') || '1';
+---
+
+<html lang={shiopaConfig.metadata.defaultLocale || 'en'} dir={(shiopaConfig.metadata.defaultLocale || 'en') === 'ar' ? 'rtl' : 'ltr'}>
+  <head>
+    <script is:inline define:vars={{ config: shiopaConfig }}>
+      window.__SHIOPA_CONFIG__ = config;
+    </script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href={shiopaConfig.metadata.thumbnail} />
+    <title>playing... - {shiopaConfig.metadata.title}</title>
+    <meta name="description" content={shiopaConfig.metadata.description} />
+    <meta property="og:title" content={`playing... - ${shiopaConfig.metadata.title}`} />
+    <meta property="og:description" content={shiopaConfig.metadata.description} />
+    <meta property="og:image" content={shiopaConfig.metadata.thumbnail} />
+    <script is:inline define:vars={{ defaultTheme: shiopaConfig.theme.defaultMode, defaultHue: shiopaConfig.theme.defaultHue, palette: shiopaConfig.theme.palette, bgDark: shiopaConfig.theme.colors.bgDark, bgLight: shiopaConfig.theme.colors.bgLight }}>
+      (function() {
+        let theme = defaultTheme || 'dark';
+        const savedTheme = localStorage.getItem('shiopa-theme');
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+          theme = savedTheme;
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.setAttribute('data-palette', palette || 'color');
+        document.documentElement.style.setProperty('--bg-color-config-dark', bgDark || '#000000');
+        document.documentElement.style.setProperty('--bg-color-config-light', bgLight || '#ffffff');
+        
+        let hue = defaultHue !== undefined ? defaultHue.toString() : '200';
+        const savedHue = localStorage.getItem('shiopa-theme-hue');
+        if (savedHue) {
+          const parsed = parseInt(savedHue, 10);
+          if (!isNaN(parsed) && parsed >= 0 && parsed <= 360) {
+            hue = parsed.toString();
+          }
+        }
+        document.documentElement.style.setProperty('--theme-hue', hue);
+      })();
+    </script>
+  </head>
+  <body style="margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background-color: #000;">
+    <NanoWatch client:load id={id || ''} type={type} season={season} episode={episode} />
+  </body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "skipLibCheck": true
+  },
+  "exclude": ["dist", "node_modules"]
+}

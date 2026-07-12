@@ -1,0 +1,20 @@
+name: bug report
+description: something broke
+title: "[bug]: "
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: what happened
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: steps to reproduce
+  - type: input
+    id: version
+    attributes:
+      label: version
+      placeholder: e.g. 2.0.16

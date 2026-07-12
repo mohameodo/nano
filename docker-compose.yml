@@ -1,0 +1,15 @@
+services:
+  shiopa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - HOST=0.0.0.0
+      - TMDB_API_KEY=${TMDB_API_KEY}
+      - TMDB_ACCESS_TOKEN=${TMDB_ACCESS_TOKEN}
+    env_file:
+      - .env
+    restart: always
