@@ -69,8 +69,6 @@ function rewriteM3U8(
   originalHeaders: Record<string, string>,
 ): string {
   const resolvedHeaders = mergeStreamHeaders("", originalUrl, originalHeaders);
-  const lastSlash = originalUrl.lastIndexOf("/")
-  const basePath = lastSlash >= 0 ? originalUrl.substring(0, lastSlash + 1) : originalUrl
 
   return content
     .split("\n")
@@ -80,7 +78,7 @@ function rewriteM3U8(
 
       if (trimmed.startsWith("#") && trimmed.includes("URI=")) {
         return line.replace(/URI="([^"]+)"/g, (_match, uri) => {
-          const absoluteUri = uri.startsWith("http") ? uri : new URL(uri, basePath).href
+          const absoluteUri = uri.startsWith("http") ? uri : new URL(uri, originalUrl).href
           const segmentHeaders = mergeStreamHeaders("", absoluteUri, resolvedHeaders)
           const payload = JSON.stringify({ url: absoluteUri, headers: segmentHeaders })
           const base64 = Buffer.from(payload).toString("base64")
@@ -90,7 +88,7 @@ function rewriteM3U8(
 
       if (trimmed.startsWith("#")) return line
 
-      const absoluteUrl = trimmed.startsWith("http") ? trimmed : new URL(trimmed, basePath).href
+      const absoluteUrl = trimmed.startsWith("http") ? trimmed : new URL(trimmed, originalUrl).href
       const isPlaylist = isPlaylistUrl(absoluteUrl)
       const segmentHeaders = mergeStreamHeaders("", absoluteUrl, resolvedHeaders)
       const payload = JSON.stringify({ url: absoluteUrl, headers: segmentHeaders })
@@ -259,21 +257,22 @@ export const GET: APIRoute = async ({ request }) => {
       headers,
     })
 
-    if (response.status === 403 || response.status === 401) {
+    if (!response.ok && (response.status === 403 || response.status === 401 || response.status === 404)) {
       for (const fb of refererFallbacks) {
-        if (headers["Referer"] === fb.referer) continue
+        if (headers["Referer"] === fb.referer && headers["Origin"] === fb.origin) continue
         const retryHeaders = { ...headers, Referer: fb.referer, Origin: fb.origin }
         const retry = await fetch(targetUrl, { method: "GET", headers: retryHeaders })
-        if (retry.ok || (retry.status !== 403 && retry.status !== 401)) {
+        // Only keep retries that actually succeed — never promote a 404 over a 403.
+        if (retry.ok) {
           response = retry
           headers["Referer"] = fb.referer
           headers["Origin"] = fb.origin
           break
         }
       }
-      // Last resort: no Origin (some CDNs reject worker Origin)
-      if (response.status === 403 || response.status === 401) {
-        const { Origin: _o, ...noOrigin } = headers
+      if (!response.ok) {
+        const noOrigin = { ...headers }
+        delete noOrigin.Origin
         const retry = await fetch(targetUrl, { method: "GET", headers: noOrigin })
         if (retry.ok) response = retry
       }
