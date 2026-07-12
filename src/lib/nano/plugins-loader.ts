@@ -17,7 +17,6 @@ export interface ScraperPlugin {
 }
 
 import { DEV_KEY_ALIASES as publicAliases } from "./plugin-aliases.mjs";
-import { decryptRink } from "./rink-crypto";
 
 const privateAliasModules = import.meta.env.DEV
   ? import.meta.glob("./plugin-aliases.private.mjs", { eager: true })
@@ -40,16 +39,6 @@ function applyDevAlias(plugin: ScraperPlugin): ScraperPlugin {
   return { ...plugin, key: alias.id, name: alias.name };
 }
 
-function executeRink(code: string): any {
-  const moduleObj = { exports: {} as any };
-  const req = (name: string) => {
-    throw new Error(`require is not supported: ${name}`);
-  };
-  const fn = new Function("module", "exports", "require", code);
-  fn(moduleObj, moduleObj.exports, req);
-  return moduleObj.exports;
-}
-
 function pushPlugin(plugins: ScraperPlugin[], plugin: any, alias: boolean) {
   if (!plugin) return;
   const list = Array.isArray(plugin) ? plugin : [plugin];
@@ -64,34 +53,31 @@ export async function getPlugins(): Promise<ScraperPlugin[]> {
   const isProd = import.meta.env.PROD;
 
   try {
+    // Build-time decrypt via ?plugin — no eval/new Function at runtime (required for CF Workers)
     const rinkModules = {
       ...import.meta.glob("../../shade/catalog/**/*.rink", {
-        query: "?uint8array",
+        query: "?plugin",
         eager: true,
       }),
       ...(isProd
         ? {}
         : import.meta.glob("../../shade/private/**/*.rink", {
-            query: "?uint8array",
+            query: "?plugin",
             eager: true,
           })),
     };
     for (const path in rinkModules) {
-      const content =
-        (rinkModules[path] as any).default || (rinkModules[path] as any);
-      if (!content) continue;
+      const mod = rinkModules[path] as any;
+      const plugin = mod?.default ?? mod;
       try {
-        const decryptedCode = await decryptRink(content);
-        const executed = executeRink(decryptedCode);
-        pushPlugin(plugins, executed.default || executed, false);
+        pushPlugin(plugins, plugin, false);
       } catch {
       }
     }
   } catch {
   }
 
-  const shouldLoadDev = import.meta.env.DEV;
-  if (shouldLoadDev) {
+  if (import.meta.env.DEV) {
     try {
       const devModules = import.meta.glob("../../shade/dev/index.ts", {
         eager: true,

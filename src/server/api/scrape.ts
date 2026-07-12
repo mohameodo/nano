@@ -90,10 +90,13 @@ export const GET: APIRoute = async ({ request }) => {
       empty,
     )
     if (!result.url || !isAllowedStreamUrl(result.url)) {
+      const { getPlugins } = await import("../../lib/nano/plugins-loader")
+      const loaded = (await getPlugins()).map((p) => p.key)
       return json({
         error: result.url ? "Blocked stream" : "No stream found",
         url: null,
         provider,
+        debug: { pluginsLoaded: loaded },
       }, 502)
     }
 

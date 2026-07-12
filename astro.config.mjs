@@ -5,6 +5,7 @@ import cloudflare from '@astrojs/cloudflare';
 import react from '@astrojs/react';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+import { rinkPluginLoader } from './scripts/rink-plugin-loader.mjs';
 
 if (process.env.VERCEL) {
   Object.defineProperty(process, 'version', {
@@ -37,6 +38,7 @@ export default defineConfig({
       }
     },
     plugins: [
+      rinkPluginLoader(),
       {
         name: 'uint8array-loader',
         load(id) {
