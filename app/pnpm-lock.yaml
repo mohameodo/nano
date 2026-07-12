@@ -11,9 +11,6 @@ importers:
       '@lynx-js/react':
         specifier: ^0.122.1
         version: 0.122.1(@lynx-js/types@4.0.0)(@types/react@18.3.31)
-      react-router:
-        specifier: ^6.30.4
-        version: 6.30.4(react@19.2.7)
     devDependencies:
       '@lynx-js/preact-devtools':
         specifier: 5.0.1-20260624133547-6641319
@@ -364,10 +361,6 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
-
-  '@remix-run/router@1.23.3':
-    resolution: {integrity: sha512-4An71tdz9X8+3sI4Qqqd2LWd9vS39J7sqd9EU4Scw7TJE/qB10Flv/UuqbPVgfQV9XoK8Np6jNquZitnZq5i+Q==}
-    engines: {node: '>=14.0.0'}
 
   '@rsbuild/core@2.0.11':
     resolution: {integrity: sha512-Mpp/viUSkVdSWJkFipdZxM2nUztrBwSnMm6Q86bPzLHtHnXqQ3VFpSMlA4wWRyySNddP6s6efKiVpx0ZOCf7Gg==}
@@ -1685,16 +1678,6 @@ packages:
     resolution: {integrity: sha512-uxFIHU0YlHYhDQtV4R9J6a52SLx28BCjT+4ieh7IGbgwVJWO+km431c4yRlREUAsAmt/uMjQUyQHNEPf0M39CA==}
     engines: {node: '>=6'}
 
-  react-router@6.30.4:
-    resolution: {integrity: sha512-SVUsDe+DybHM/WmYKIVYhZh1o5Dcuf16yM6WjG02Q9XVFMZIJyHYhwrr6bFBXZkVP6z69kNkMyBCujt8FaFLJA==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      react: '>=16.8'
-
-  react@19.2.7:
-    resolution: {integrity: sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ==}
-    engines: {node: '>=0.10.0'}
-
   readdirp@3.6.0:
     resolution: {integrity: sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA==}
     engines: {node: '>=8.10.0'}
@@ -2360,8 +2343,6 @@ snapshots:
       '@emnapi/runtime': 1.10.0
       '@tybys/wasm-util': 0.10.3
     optional: true
-
-  '@remix-run/router@1.23.3': {}
 
   '@rsbuild/core@2.0.11':
     dependencies:
@@ -3802,13 +3783,6 @@ snapshots:
       source-map-js: 1.2.1
 
   punycode.js@2.3.1: {}
-
-  react-router@6.30.4(react@19.2.7):
-    dependencies:
-      '@remix-run/router': 1.23.3
-      react: 19.2.7
-
-  react@19.2.7: {}
 
   readdirp@3.6.0:
     dependencies:

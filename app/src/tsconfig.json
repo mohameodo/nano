@@ -6,6 +6,9 @@
     "jsxImportSource": "@lynx-js/react",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "target": "ES2022",
+    "types": ["@lynx-js/types"],
     "noEmit": true
   },
   "include": [

@@ -43,7 +43,11 @@ jobs:
           cache: pnpm
           cache-dependency-path: app/pnpm-lock.yaml
 
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-workspace
+
+      - name: Verify app dependencies
+        shell: bash
+        run: test -d node_modules/@lynx-js/react
 
       - run: pnpm typecheck
 
@@ -81,7 +85,11 @@ jobs:
           cache: pnpm
           cache-dependency-path: app/pnpm-lock.yaml
 
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-workspace
+
+      - name: Verify app dependencies
+        shell: bash
+        run: test -d node_modules/@lynx-js/react
 
       - run: pnpm typecheck
 
@@ -128,7 +136,11 @@ jobs:
           cache: pnpm
           cache-dependency-path: app/pnpm-lock.yaml
 
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-workspace
+
+      - name: Verify app dependencies
+        shell: bash
+        run: test -d node_modules/@lynx-js/react
 
       - run: pnpm typecheck
 
@@ -176,7 +188,11 @@ jobs:
           cache: pnpm
           cache-dependency-path: app/pnpm-lock.yaml
 
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-workspace
+
+      - name: Verify app dependencies
+        shell: bash
+        run: test -d node_modules/@lynx-js/react
 
       - run: pnpm build
 
