@@ -1,0 +1,85 @@
+.VideoPlayer {
+  width: 100%;
+  flex: 1;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  background-color: #0a0a0a;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.VideoPlayer--state {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.VideoPlayer__stage {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+}
+
+.VideoPlayer__title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.VideoPlayer__meta {
+  color: #8a8a8a;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.VideoPlayer__url {
+  color: #666666;
+  font-size: 11px;
+  text-align: center;
+  line-height: 1.4;
+  width: 100%;
+}
+
+.VideoPlayer__stateText {
+  color: #cccccc;
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.VideoPlayer__btn {
+  padding: 10px 18px;
+  border-radius: 16px;
+  background-color: #1f1f23;
+  border-width: 3px;
+  border-color: transparent;
+  border-style: solid;
+}
+
+.VideoPlayer__btn:focus,
+.VideoPlayer__btn--focus {
+  border-color: #ffffff;
+}
+
+.VideoPlayer__btnText {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.VideoPlayer__row {
+  padding: 10px 14px;
+  background-color: #121214;
+}
+
+.VideoPlayer__rowLabel {
+  color: #8a8a8a;
+  font-size: 12px;
+}

@@ -4,6 +4,7 @@ import { Player, Controls, Settings } from "./video-player"
 import { providerList } from "../../lib/nano/nano.shiopa"
 import { shiopaConfig } from "./config.shiopa"
 import { TRANSLATIONS } from "./locales/translations"
+import { shiopaFetch, appendSignatureParams } from "../../lib/nano/app-signature"
 import { getStoredHandle, verifyPermission, loadRinkJson, getLocalFileUrl, storeHandle, getBrowserItems, getBrowserFile, srtToVtt, saveBrowserItems } from "../../lib/nano/local-library"
 
 interface NanoWatchProps {
@@ -491,7 +492,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
               if (localServerPath) {
                 streamUrl += `&base=${encodeURIComponent(localServerPath)}`
               }
-              videoUrl = streamUrl
+              videoUrl = appendSignatureParams(streamUrl)
               isUrlDirect = true
             } else if (folderHandle) {
               try {
@@ -540,7 +541,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
                     subUrl += `&base=${encodeURIComponent(localServerPath)}`
                   }
                   resolvedSubs.push({
-                    src: subUrl,
+                    src: appendSignatureParams(subUrl),
                     label: sub.label || "Local Sub",
                     language: sub.language || "en"
                   })
@@ -674,7 +675,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
       }))
 
       try {
-        const res = await fetch(`/api/scrape?id=${id}&type=${mediaType}&season=${currentSeason}&episode=${currentEpisode}&provider=${activeServer}`, {
+        const res = await shiopaFetch(`/api/scrape?id=${id}&type=${mediaType}&season=${currentSeason}&episode=${currentEpisode}&provider=${activeServer}`, {
           signal: controller.signal
         })
         clearTimeout(timeoutId)

@@ -1,0 +1,13 @@
+.DS_Store
+*.local
+*.log*
+node_modules
+dist/
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.tsbuildinfo
+.sparkling/
+android/app/build/
+ios/build/
+*.lynx.bundle

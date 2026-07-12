@@ -1,3 +1,9 @@
+import {
+  APP_SIGNATURE,
+  SHIOPA_CODE,
+  validateRequestSignature,
+} from "../../lib/nano/app-signature"
+
 type Bucket = {
   count: number
   resetAt: number
@@ -12,6 +18,7 @@ type ProtectionResult = {
   response?: Response
   sessionId: string
   setCookie: boolean
+  sigSoft?: boolean
 }
 
 const buckets = new Map<string, Bucket>()
@@ -154,6 +161,16 @@ export async function protectRequest(request: Request): Promise<ProtectionResult
   const sessionId = session.id
   const setCookie = session.fresh
 
+  const sigCheck = validateRequestSignature(request)
+  if (!sigCheck.ok) {
+    return {
+      response: blocked(403, "Invalid app signature"),
+      sessionId,
+      setCookie,
+      sigSoft: true,
+    }
+  }
+
   if (honeypots.has(url.pathname.toLowerCase())) {
     return { response: blocked(404, "Not found"), sessionId, setCookie }
   }
@@ -200,7 +217,7 @@ export async function protectRequest(request: Request): Promise<ProtectionResult
     }
   }
 
-  return { sessionId, setCookie }
+  return { sessionId, setCookie, sigSoft: sigCheck.soft }
 }
 
 export async function verifyTurnstile(token: string, request: Request): Promise<boolean> {
@@ -231,13 +248,21 @@ export async function createChallengeCookie(request: Request): Promise<string> {
   return `shiopa-challenge=${encodeURIComponent(`${payload}.${signed}`)}; Path=/; Max-Age=${challengeTtl / 1000}; HttpOnly; SameSite=Lax; Secure`
 }
 
-export function secureResponse(response: Response, sessionId: string, setCookie: boolean): Response {
+export function secureResponse(
+  response: Response,
+  sessionId: string,
+  setCookie: boolean,
+  sigSoft = false,
+): Response {
   const headers = new Headers(response.headers)
   headers.set("X-Content-Type-Options", "nosniff")
   headers.set("Referrer-Policy", "same-origin")
   headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
   headers.set("Cross-Origin-Resource-Policy", "same-site")
   headers.set("Content-Security-Policy", "frame-ancestors 'self'; base-uri 'self'; object-src 'none'")
+  headers.set("x-shiopa-sig", APP_SIGNATURE)
+  headers.set("x-shiopa-code", SHIOPA_CODE)
+  if (sigSoft) headers.set("x-shiopa-sig-status", "invalid")
   if (setCookie) {
     headers.append("Set-Cookie", `shiopa-sse=${encodeURIComponent(sessionId)}; Path=/; Max-Age=${sessionTtl / 1000}; HttpOnly; SameSite=Lax; Secure`)
   }
