@@ -167,7 +167,34 @@ const configObject: ShiopaConfig = {
   },
 };
 
+// Stale env like DEFAULT_SERVER=nemu must not point at a removed/private server.
+{
+  const servers = configObject.features.videoPlayer.servers
+  const ids = new Set(servers.map((s) => s.id))
+  if (!ids.has(configObject.features.videoPlayer.defaultServer)) {
+    configObject.features.videoPlayer.defaultServer = servers[0]?.id || "shiopa"
+  }
+}
+
+function clampInjectedConfig(config: ShiopaConfig): ShiopaConfig {
+  const servers = config.features?.videoPlayer?.servers || []
+  const ids = new Set(servers.map((s) => s.id))
+  const current = config.features?.videoPlayer?.defaultServer
+  if (current && !ids.has(current) && servers[0]) {
+    return {
+      ...config,
+      features: {
+        ...config.features,
+        videoPlayer: {
+          ...config.features.videoPlayer,
+          defaultServer: servers[0].id,
+        },
+      },
+    }
+  }
+  return config
+}
 
 export const shiopaConfig: ShiopaConfig = !isServer && (window as any).__SHIOPA_CONFIG__
-  ? (window as any).__SHIOPA_CONFIG__
+  ? clampInjectedConfig((window as any).__SHIOPA_CONFIG__)
   : configObject;

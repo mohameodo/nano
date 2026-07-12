@@ -68,7 +68,11 @@ export function defaultRuntimeSettings(): RuntimeSettings {
     useMixedFancyFont: logo.useMixedFancyFont ?? true,
     showIcon: logo.showIcon ?? false,
     useVidstack: videoPlayer.useVidstack ?? false,
-    defaultServer: videoPlayer.defaultServer || "shiopa",
+    defaultServer: (() => {
+      const servers = config.features?.videoPlayer?.servers || []
+      const raw = videoPlayer.defaultServer || "shiopa"
+      return servers.some((s: { id: string }) => s.id === raw) ? raw : (servers[0]?.id || "shiopa")
+    })(),
     greetingStyle: logo.greetingStyle || "nano-pet",
     bgStyle: theme.customBg && !theme.bgStyle ? "custom" : theme.bgStyle || "neon-dither",
     themePalette: theme.palette || "color",
@@ -107,6 +111,10 @@ export function loadRuntimeSettings(): RuntimeSettings {
         const n = parseInt(old, 10)
         if (!isNaN(n) && n >= 0 && n <= 360) merged.themeHue = n
       }
+    }
+    const servers = getServerOptions()
+    if (!servers.some((s) => s.id === merged.defaultServer)) {
+      merged.defaultServer = servers[0]?.id || "shiopa"
     }
     return merged
   } catch {
