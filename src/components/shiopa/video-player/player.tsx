@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import Hls from "hls.js"
-import { IoPlay, IoPause, IoDownload, IoSettings } from "react-icons/io5"
-import { BiSolidVolumeFull } from "react-icons/bi"
-import { ImVolumeMute2 } from "react-icons/im"
-import { RiFullscreenFill, RiFullscreenExitFill } from "react-icons/ri"
-import { MdDns } from "react-icons/md"
+import { IoPlay, IoPause, IoSettings } from "react-icons/io5"
+import { MdDns, MdSubtitles } from "react-icons/md"
 import { HiMiniRectangleStack } from "react-icons/hi2"
 import { TRANSLATIONS } from "../locales/translations"
 
@@ -242,7 +239,13 @@ export default function Player({
   }
 
   const [activeUrl, setActiveUrl] = useState("")
-  const [qualityOpen, setQualityOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [subtitleOpen, setSubtitleOpen] = useState(false)
+  const [activeSubtitle, setActiveSubtitle] = useState(() => {
+    const idx = subtitles.findIndex((track) => track.default)
+    return idx !== -1 ? idx : -1
+  })
+  const [playbackRate, setPlaybackRate] = useState(1)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -254,6 +257,20 @@ export default function Player({
   const [showControls, setShowControls] = useState(true)
   const [serverOpen, setServerOpen] = useState(false)
   const [showVolumeSlider, setShowVolumeSlider] = useState(false)
+  const menuOpen = serverOpen || settingsOpen || subtitleOpen
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    const tracks = video.textTracks
+    for (let i = 0; i < tracks.length; i++) {
+      tracks[i].mode = i === activeSubtitle ? "showing" : "disabled"
+    }
+  }, [activeSubtitle, subtitles, embedUrl])
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = playbackRate
+  }, [playbackRate])
 
   const isHls = useCallback((url: string) => {
     return url.toLowerCase().includes(".m3u8") || url.toLowerCase().includes("/hls/")
@@ -410,9 +427,9 @@ export default function Player({
     setShowControls(true)
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current)
     controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying && !serverOpen && !qualityOpen) setShowControls(false)
+      if (isPlaying && !menuOpen) setShowControls(false)
     }, 3500)
-  }, [isPlaying, serverOpen, qualityOpen])
+  }, [isPlaying, menuOpen])
 
   const showControlsNow = useCallback(() => {
     showControlsDelayed()
@@ -604,7 +621,7 @@ export default function Player({
       className={`nano-player-container ${showControls ? "nano-player-controls-active" : ""}`}
       onMouseMove={showControlsNow}
       onMouseLeave={() => {
-        if (isPlaying && !serverOpen && !qualityOpen) setShowControls(false)
+        if (isPlaying && !menuOpen) setShowControls(false)
       }}
       onClick={showControlsNow}
       onTouchStart={showControlsNow}
@@ -720,7 +737,15 @@ export default function Player({
 
             {servers.length > 0 && setActiveServer && (
               <div className="nano-server-control">
-                <button type="button" className="nano-control-btn" onClick={() => setServerOpen(!serverOpen)}>
+                <button
+                  type="button"
+                  className="nano-control-btn"
+                  onClick={() => {
+                    setServerOpen(!serverOpen)
+                    setSettingsOpen(false)
+                    setSubtitleOpen(false)
+                  }}
+                >
                   <MdDns />
                 </button>
                 {serverOpen && (
@@ -746,31 +771,45 @@ export default function Player({
               </div>
             )}
 
-            {qualities.length > 0 && (
-              <div className="nano-server-control" style={{ position: "relative" }}>
+            {subtitles.length > 0 && (
+              <div className="nano-server-control">
                 <button
                   type="button"
-                  className="nano-control-btn"
-                  onClick={() => setQualityOpen(!qualityOpen)}
-                  aria-label={label("playerQuality", "Quality")}
+                  className={`nano-control-btn ${activeSubtitle !== -1 ? "active" : ""}`}
+                  onClick={() => {
+                    setSubtitleOpen(!subtitleOpen)
+                    setSettingsOpen(false)
+                    setServerOpen(false)
+                  }}
+                  aria-label={label("playerSubtitles", "Subtitles")}
                 >
-                  <IoSettings />
+                  <MdSubtitles />
                 </button>
-                {qualityOpen && (
-                  <div className="nano-player-dropdown nano-player-dropdown-servers" style={{ bottom: "100%", right: 0 }}>
-                    <div className="nano-dropdown-title">{label("playerQuality", "Quality")}</div>
+                {subtitleOpen && (
+                  <div className="nano-player-dropdown" style={{ width: "220px", bottom: "100%", right: 0 }}>
+                    <div className="nano-dropdown-title">{label("playerSubtitles", "Subtitles")}</div>
                     <div className="nano-dropdown-list">
-                      {qualities.map((q, idx) => (
+                      <button
+                        type="button"
+                        className={`nano-dropdown-item ${activeSubtitle === -1 ? "active" : ""}`}
+                        onClick={() => {
+                          setActiveSubtitle(-1)
+                          setSubtitleOpen(false)
+                        }}
+                      >
+                        {label("playerOff", "Off")}
+                      </button>
+                      {subtitles.map((track, idx) => (
                         <button
                           type="button"
                           key={idx}
-                          className={`nano-dropdown-item ${activeUrl === q.url ? "active" : ""}`}
+                          className={`nano-dropdown-item ${activeSubtitle === idx ? "active" : ""}`}
                           onClick={() => {
-                            handleQualitySelect(q.url)
-                            setQualityOpen(false)
+                            setActiveSubtitle(idx)
+                            setSubtitleOpen(false)
                           }}
                         >
-                          {q.label}
+                          {track.label || `Track ${idx + 1}`}
                         </button>
                       ))}
                     </div>
@@ -779,17 +818,63 @@ export default function Player({
               </div>
             )}
 
-            <a
-              href={embedUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              download
-              className="nano-control-btn"
-              aria-label={label("playerDownload", "Download")}
-              style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
-            >
-              <IoDownload />
-            </a>
+            <div className="nano-server-control" style={{ position: "relative" }}>
+              <button
+                type="button"
+                className={`nano-control-btn ${settingsOpen ? "active" : ""}`}
+                onClick={() => {
+                  setSettingsOpen(!settingsOpen)
+                  setServerOpen(false)
+                  setSubtitleOpen(false)
+                }}
+                aria-label={label("setSectionPlayer", "player")}
+              >
+                <IoSettings />
+              </button>
+              {settingsOpen && (
+                <div className="nano-player-dropdown nano-player-dropdown-servers" style={{ bottom: "100%", right: 0, minWidth: "180px" }}>
+                  {qualities.length > 0 && (
+                    <>
+                      <div className="nano-dropdown-title">{label("playerQuality", "Quality")}</div>
+                      <div className="nano-dropdown-list">
+                        {qualities.map((q, idx) => (
+                          <button
+                            type="button"
+                            key={idx}
+                            className={`nano-dropdown-item ${activeUrl === q.url ? "active" : ""}`}
+                            onClick={() => {
+                              handleQualitySelect(q.url)
+                              setSettingsOpen(false)
+                            }}
+                          >
+                            {q.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <div className="nano-dropdown-title" style={qualities.length > 0 ? { marginTop: "12px" } : undefined}>
+                    {label("playerSpeed", "Speed")}
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                    {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+                      <button
+                        type="button"
+                        key={rate}
+                        className={`nano-dropdown-item ${playbackRate === rate ? "active" : ""}`}
+                        onClick={() => {
+                          setPlaybackRate(rate)
+                          if (videoRef.current) videoRef.current.playbackRate = rate
+                        }}
+                        style={{ flex: 1, textAlign: "center", padding: "6px 4px", fontSize: "12px", minWidth: "48px" }}
+                      >
+                        {rate === 1 ? "1x" : `${rate}x`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <button type="button" className="nano-control-btn" onClick={toggleFullscreen}>
               {isFullscreen ? <RiFullscreenExitFill /> : <RiFullscreenFill />}

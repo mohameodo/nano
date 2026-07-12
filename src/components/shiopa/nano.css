@@ -1242,10 +1242,27 @@ html[dir="rtl"][data-theme="light"] .nano-wrapper:not(.nano-wrapper-shader) .nan
 }
 
 .nano-watch-title {
-  font-size: 1.1rem;
+  font-size: 0.85rem;
   font-weight: 500 !important;
   color: #ffffff;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(55vw, 420px);
+  line-height: 1.2;
+}
+
+@media (max-width: 640px) {
+  .nano-watch-title {
+    font-size: 0.75rem;
+    max-width: calc(100vw - 180px);
+  }
+
+  .nano-watch-header {
+    padding: 10px 12px;
+    gap: 10px;
+  }
 }
 
 .nano-watch-content {
@@ -1485,13 +1502,21 @@ body.nano-ios-fs-active {
 }
 
 .nano-player-title {
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 500;
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.9);
   text-shadow: 0 1px 3px rgba(0,0,0,0.8);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 70%;
+}
+
+@media (max-width: 640px) {
+  .nano-player-title {
+    font-size: 0.7rem;
+    max-width: 60%;
+  }
 }
 
 .nano-progress-container {
