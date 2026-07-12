@@ -1,5 +1,5 @@
 import { getPlugins } from "./plugins-loader";
-import { fetchViaProxy } from "./utils";
+import { fetchViaProxy, USER_AGENT } from "./utils";
 import { isAllowedStreamUrl } from "./stream-safety";
 import { encodeProxyData, mergeStreamHeaders } from "./stream-headers";
 import { mergeProviders } from "../providers/registry";
@@ -37,6 +37,53 @@ function needsProxy(url: string): boolean {
   return url.startsWith("http") && !url.startsWith("/api/proxy");
 }
 
+async function probeStreamAlive(
+  url: string,
+  headers: Record<string, string>
+): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "*/*",
+        Range: "bytes=0-2047",
+        ...headers,
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!(res.ok || res.status === 206)) return false;
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
+    const text = await res.text();
+    const start = text.trimStart().slice(0, 300).toLowerCase();
+    if (
+      ct.includes("text/html") ||
+      start.startsWith("<!doctype") ||
+      start.startsWith("<html") ||
+      start.includes("domain suspended") ||
+      start.includes("upstream 403")
+    ) {
+      return false;
+    }
+    if (
+      url.includes(".m3u8") ||
+      url.includes("/hls/") ||
+      url.includes("playlist") ||
+      url.includes("stream-proxy")
+    ) {
+      return (
+        text.includes("#EXTM3U") ||
+        text.includes("#EXT-X-") ||
+        start.startsWith("{") ||
+        start.startsWith("http")
+      );
+    }
+    return text.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 async function finalizeStream(
   providerId: string,
   stream: {
@@ -55,6 +102,9 @@ async function finalizeStream(
   if (!resolved || !isAllowedStreamUrl(resolved.url)) return emptyStream;
   streamUrl = resolved.url;
   const finalIsM3U8 = resolved.isM3U8;
+
+  const alive = await probeStreamAlive(streamUrl, streamHeaders);
+  if (!alive) return emptyStream;
 
   if (isDirect && needsProxy(streamUrl)) {
     streamUrl = makeProxyUrl(streamUrl, streamHeaders, providerId);

@@ -99,6 +99,57 @@ function rewriteM3U8(
     .join("\n")
 }
 
+function isDeadUpstreamBody(text: string, contentType = ""): boolean {
+  const ct = contentType.toLowerCase()
+  const start = text.trimStart().slice(0, 400).toLowerCase()
+  if (
+    ct.includes("text/html") ||
+    start.startsWith("<!doctype") ||
+    start.startsWith("<html") ||
+    start.includes("domain suspended") ||
+    start.includes("not configured") ||
+    start.includes("bunnycdn")
+  ) {
+    return (
+      start.includes("domain suspended") ||
+      start.includes("not configured") ||
+      start.includes("access denied") ||
+      start.includes("bunnycdn") ||
+      start.includes("forbidden")
+    )
+  }
+  if (start.includes("upstream 403") || start.includes("upstream 401") || start.includes("upstream error")) {
+    return true
+  }
+  return false
+}
+
+function tryUnwrapStreamVault(url: string): { url: string; headers: Record<string, string> } | null {
+  try {
+    const parsed = new URL(url)
+    if (!parsed.hostname.includes("streamvault") || !parsed.pathname.includes("stream-proxy")) {
+      return null
+    }
+    const nested = parsed.searchParams.get("u")
+    if (!nested) return null
+    const headers: Record<string, string> = {}
+    const rawH = parsed.searchParams.get("h")
+    if (rawH) {
+      try {
+        const decoded = JSON.parse(rawH)
+        if (decoded && typeof decoded === "object") {
+          for (const [k, v] of Object.entries(decoded)) {
+            if (typeof v === "string") headers[k] = v
+          }
+        }
+      } catch {}
+    }
+    return { url: nested, headers }
+  } catch {
+    return null
+  }
+}
+
 export const GET: APIRoute = async ({ request }) => {
   try {
     const url = new URL(request.url)
@@ -145,7 +196,7 @@ export const GET: APIRoute = async ({ request }) => {
       (targetUrl ? isHlsMediaSegment(targetUrl) : false)
 
     const targetUrlObj = new URL(targetUrl)
-    const resolvedCustomHeaders = mergeStreamHeaders("", targetUrl, customHeaders)
+    let resolvedCustomHeaders = mergeStreamHeaders("", targetUrl, customHeaders)
     const headers: Record<string, string> = {
       "User-Agent": USER_AGENT,
       Accept: "*/*",
@@ -249,6 +300,13 @@ export const GET: APIRoute = async ({ request }) => {
       refererFallbacks.push(
         { referer: "https://vidrock.ru/", origin: "https://vidrock.ru" },
         { referer: "https://vidrock.net/", origin: "https://vidrock.net" },
+        { referer: "https://vidrock.to/", origin: "https://vidrock.to" },
+      )
+    }
+    if (targetUrlObj.hostname.includes("streamvault")) {
+      refererFallbacks.push(
+        { referer: "https://streamvaultsrc.click/", origin: "https://streamvaultsrc.click" },
+        { referer: "https://vidnest.fun/", origin: "https://vidnest.fun" },
       )
     }
 
@@ -275,6 +333,63 @@ export const GET: APIRoute = async ({ request }) => {
         delete noOrigin.Origin
         const retry = await fetch(targetUrl, { method: "GET", headers: noOrigin })
         if (retry.ok) response = retry
+      }
+    }
+
+    // Streamvault often returns 404 "upstream 403" — unwrap nested CDN URL and fetch it ourselves.
+    if (!response.ok) {
+      const unwrap = tryUnwrapStreamVault(targetUrl)
+      if (unwrap) {
+        const nestedHeaders = {
+          ...headers,
+          ...Object.fromEntries(
+            Object.entries(unwrap.headers).map(([k, v]) => [normalizeHeaderKey(k), v]),
+          ),
+        }
+        if (!nestedHeaders["Referer"] && unwrap.headers.Referer) {
+          nestedHeaders["Referer"] = unwrap.headers.Referer
+        }
+        if (nestedHeaders["Referer"] && !nestedHeaders["Origin"]) {
+          try {
+            nestedHeaders["Origin"] = new URL(nestedHeaders["Referer"]).origin
+          } catch {}
+        }
+        const nested = await fetch(unwrap.url, { method: "GET", headers: nestedHeaders })
+        if (nested.ok) {
+          response = nested
+          targetUrl = unwrap.url
+          Object.assign(headers, nestedHeaders)
+          resolvedCustomHeaders = mergeStreamHeaders("", targetUrl, {
+            ...customHeaders,
+            ...unwrap.headers,
+          })
+        }
+      }
+    }
+
+    // Dead Bunny / HTML error pages are not playable — tell the player to switch servers.
+    if (!response.ok) {
+      const errType = (response.headers.get("content-type") || "").toLowerCase()
+      let errBody = ""
+      try {
+        errBody = await response.clone().text()
+      } catch {}
+      if (isDeadUpstreamBody(errBody, errType) || response.status === 403 || response.status === 401) {
+        return new Response(
+          JSON.stringify({
+            error: "Upstream CDN rejected stream",
+            deadUpstream: true,
+            status: response.status,
+          }),
+          {
+            status: 502,
+            headers: {
+              "Access-Control-Allow-Origin": "*",
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+            },
+          },
+        )
       }
     }
 
@@ -329,6 +444,23 @@ export const GET: APIRoute = async ({ request }) => {
     if (urlHintM3U8 || needsSniff) {
       const text = await response.text()
       const trimmed = text.trimStart()
+      if (isDeadUpstreamBody(text, contentType)) {
+        return new Response(
+          JSON.stringify({
+            error: "Upstream CDN rejected stream",
+            deadUpstream: true,
+            status: response.status,
+          }),
+          {
+            status: 502,
+            headers: {
+              "Access-Control-Allow-Origin": "*",
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+            },
+          },
+        )
+      }
       const isM3U8ByBody =
         trimmed.startsWith("#EXTM3U") ||
         trimmed.startsWith("#EXT-X-") ||
