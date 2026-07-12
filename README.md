@@ -46,7 +46,7 @@ Read the full friendly guide in [docs/configure.md](docs/configure.md).
 Install globally:
 
 ```bash
-npm i -g shiopa-nano
+npm i -g shiopa
 shiopa clone
 shiopa config
 ```
