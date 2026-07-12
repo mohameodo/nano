@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { NANO_PET_BODY_PATH, NANO_PET_VIEWBOX } from "./nano-pet-shape"
 import { isHorrorQuery } from "./nano-pet-mood"
+import { shiopaFetch } from "../../../lib/nano/app-signature"
 
 interface NanoPetProps {
   lines: string[]
@@ -382,7 +383,7 @@ export function NanoPet({
           setRealtimeGuess(`hmm... are you looking for something about "${searchQuery.trim().split(" ").slice(0, 3).join(" ")}"?`)
         })
       } else {
-        fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`)
+        shiopaFetch(`/api/search?q=${encodeURIComponent(searchQuery)}`)
           .then((res) => {
             if (!res.ok) throw new Error("Search failed")
             return res.json()

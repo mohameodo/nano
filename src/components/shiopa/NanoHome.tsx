@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect, lazy, Suspense } from "react"
 import type { FormEvent } from "react"
 import { getStoredHandle, storeHandle, clearStoredHandle, verifyPermission, loadRinkJson, getBrowserItems } from "../../lib/nano/local-library"
+import { shiopaFetch } from "../../lib/nano/app-signature"
 import { 
   FaChevronDown, 
   FaTv, 
@@ -252,7 +253,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
     if (!runtimeSettings.showTrending) return
     async function fetchTrending() {
       try {
-        const response = await fetch("/api/trending")
+        const response = await shiopaFetch("/api/trending")
         if (response.ok) {
           const data = await response.json()
           setTrending(data.results || [])
@@ -353,7 +354,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
       setLoading(true)
       try {
         const langParam = locale ? `&lang=${locale === "genz" ? "en" : locale}` : ""
-        const response = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}&page=${currentPage}${langParam}`)
+        const response = await shiopaFetch(`/api/search?q=${encodeURIComponent(trimmed)}&page=${currentPage}${langParam}`)
         if (response.ok) {
           const data = await response.json()
           setResults(data.results || [])

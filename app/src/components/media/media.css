@@ -1,0 +1,145 @@
+.MediaGrid {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.MediaGrid--empty {
+  padding: 32px 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.MediaGrid__empty {
+  color: #8a8a8a;
+  font-size: 14px;
+}
+
+.MediaGrid__cell {
+  width: 48%;
+  margin-bottom: 16px;
+}
+
+.MediaCard {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  border-width: 3px;
+  border-color: transparent;
+  border-style: solid;
+  padding: 2px;
+}
+
+.MediaCard:focus,
+.MediaCard--focus {
+  border-color: #ffffff;
+}
+
+.MediaCard__poster {
+  width: 100%;
+  height: 220px;
+  border-radius: 16px;
+  overflow: hidden;
+  background-color: #1c1c20;
+  margin-bottom: 8px;
+}
+
+.MediaCard__image {
+  width: 100%;
+  height: 100%;
+}
+
+.MediaCard__placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1f1f23;
+}
+
+.MediaCard__placeholderText {
+  color: #ffffff;
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.MediaCard__title {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.MediaCard__meta {
+  color: #8a8a8a;
+  font-size: 12px;
+}
+
+.SearchForm {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.SearchForm__field {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background-color: #1c1c20;
+  margin-right: 8px;
+}
+
+.SearchForm__input {
+  width: 100%;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.SearchForm__go {
+  padding: 12px 16px;
+  border-radius: 16px;
+  background-color: #1f1f23;
+}
+
+.SearchForm__goText {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.Pagination {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.Pagination__btn {
+  padding: 10px 14px;
+  border-radius: 16px;
+  background-color: #1c1c20;
+}
+
+.Pagination__btn--disabled {
+  opacity: 0.4;
+}
+
+.Pagination__btnText {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.Pagination__label {
+  color: #8a8a8a;
+  font-size: 13px;
+}

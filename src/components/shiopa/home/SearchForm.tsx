@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import type { FormEvent } from "react"
 import { FaSearch, FaSpinner } from "react-icons/fa"
+import { shiopaFetch } from "../../../lib/nano/app-signature"
 
 interface SearchFormProps {
   query: string
@@ -46,7 +47,7 @@ export default function SearchForm({
     const timer = setTimeout(async () => {
       try {
         const langParam = locale ? `&lang=${locale === "genz" ? "en" : locale}` : ""
-        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}&page=1${langParam}`)
+        const res = await shiopaFetch(`/api/search?q=${encodeURIComponent(trimmed)}&page=1${langParam}`)
         if (res.ok) {
           const data = await res.json()
           setSuggestions((data.results || []).slice(0, 5))

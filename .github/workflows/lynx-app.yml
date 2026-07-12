@@ -1,0 +1,187 @@
+name: Lynx App
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/lynx-app.yml"
+  pull_request:
+    paths:
+      - "app/**"
+      - ".github/workflows/lynx-app.yml"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: app
+
+env:
+  CI: 1
+
+jobs:
+  typecheck-build:
+    name: Typecheck & Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      - run: pnpm build
+
+      - name: Verify Lynx bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/shiopa.lynx.bundle || ls dist/*.lynx.bundle >/dev/null
+
+  android:
+    name: Android (${{ matrix.os }} / Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            node: "22"
+            script: build:android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      - run: pnpm ${{ matrix.script }}
+
+      - name: Verify Android native assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f android/app/src/main/assets/shiopa.lynx.bundle
+          test -f android/app/src/main/assets/main.lynx.bundle
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lynx-android-bundle-${{ matrix.os }}-node${{ matrix.node }}
+          path: |
+            app/dist/*.lynx.bundle
+            app/android/app/src/main/assets/*.lynx.bundle
+          if-no-files-found: error
+          retention-days: 7
+
+  ios:
+    name: iOS (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            scripts: "build:ios build:android"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      - name: Build iOS and Android Lynx assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for script in ${{ matrix.scripts }}; do
+            pnpm "$script"
+          done
+
+      - name: Verify iOS native assets (bundle stub host)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f ios/shiopa/Resources/Assets/shiopa.lynx.bundle
+          test -f ios/shiopa/Resources/Assets/main.lynx.bundle
+          test -f android/app/src/main/assets/shiopa.lynx.bundle
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lynx-ios-bundle-${{ matrix.os }}
+          path: |
+            app/dist/*.lynx.bundle
+            app/ios/shiopa/Resources/Assets/*.lynx.bundle
+          if-no-files-found: error
+          retention-days: 7
+
+  windows-build:
+    name: Windows Build
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - name: Verify Lynx bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/shiopa.lynx.bundle || ls dist/*.lynx.bundle >/dev/null

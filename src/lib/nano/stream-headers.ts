@@ -1,4 +1,12 @@
 import { USER_AGENT } from "./utils";
+import {
+  APP_SIGNATURE,
+  CODE_PARAM,
+  CODE_QUERY,
+  SHIOPA_CODE,
+  SIG_QUERY,
+  SIG_QUERY_ALT,
+} from "./app-signature";
 
 type OriginPair = { referer: string; origin: string };
 
@@ -135,5 +143,11 @@ export function encodeProxyData(
     typeof Buffer !== "undefined"
       ? Buffer.from(json).toString("base64")
       : btoa(unescape(encodeURIComponent(json)));
-  return `/api/proxy?data=${encodeURIComponent(base64)}`;
+  const params = new URLSearchParams();
+  params.set("data", base64);
+  params.set(SIG_QUERY, APP_SIGNATURE);
+  params.set(SIG_QUERY_ALT, APP_SIGNATURE);
+  params.set(CODE_QUERY, SHIOPA_CODE);
+  params.set(CODE_PARAM, SHIOPA_CODE);
+  return `/api/proxy?${params.toString()}`;
 }

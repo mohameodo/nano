@@ -1,0 +1,29 @@
+{
+  "name": "shiopa",
+  "displayName": "shiopa",
+  "slug": "shiopa",
+  "version": "0.0.0",
+  "orientation": "portrait",
+  "icon": "./assets/shiopa.png",
+  "platforms": ["ios", "android", "android-tv"],
+  "ios": {
+    "bundleIdentifier": "ink.popr.shiopa",
+    "supportsTablet": true
+  },
+  "android": {
+    "package": "ink.popr.shiopa",
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/shiopa.png",
+      "backgroundColor": "#000000"
+    },
+    "tv": {
+      "banner": "./android/app/src/main/res/drawable/tv_banner.xml",
+      "leanback": true
+    }
+  },
+  "lynx": {
+    "entry": "./src/index.tsx",
+    "bundle": "shiopa.lynx.bundle",
+    "config": "./lynx.config.ts"
+  }
+}
