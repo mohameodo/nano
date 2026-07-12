@@ -303,6 +303,22 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
     })
   }
 
+  const updateRuntimeNumber = (key: keyof RuntimeSettings, value: number) => {
+    setRuntimeSettings((prev) => {
+      const next = { ...prev, [key]: value }
+      saveRuntimeSettings(next)
+      return next
+    })
+    if (key === "themeHue") {
+      setThemeHue(value)
+    }
+  }
+
+  const handleThemeModeChange = (mode: "dark" | "light") => {
+    setThemeMode(mode)
+    updateRuntimeSelect("themeMode", mode)
+  }
+
   const renderMixedText = (text: string, isGreeting: boolean = false) => {
     if (locale === "ar") {
       return <span style={{ color: "var(--text-color)" }}>{text}</span>
@@ -817,6 +833,11 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
         settings={runtimeSettings}
         onToggle={updateRuntimeSetting}
         onSelect={updateRuntimeSelect}
+        onNumber={updateRuntimeNumber}
+        onThemeModeChange={handleThemeModeChange}
+        locale={locale}
+        setLocale={setLocale}
+        localeOptions={Object.keys(TRANSLATIONS)}
         onClose={() => setSettingsOpen(false)}
         t={t}
       />

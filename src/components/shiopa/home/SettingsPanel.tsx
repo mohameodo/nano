@@ -202,7 +202,7 @@ export default function SettingsPanel({
   onThemeModeChange,
   locale,
   setLocale,
-  localeOptions,
+  localeOptions = [],
   onClose,
   t,
 }: SettingsPanelProps) {
