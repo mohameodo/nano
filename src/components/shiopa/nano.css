@@ -716,7 +716,7 @@ html[dir="rtl"][data-theme="light"] .nano-wrapper:not(.nano-wrapper-shader) .nan
   padding: 0;
   padding-inline-end: 12px;
   height: 100%;
-  font-size: 0.875rem;
+  font-size: 16px;
   color: var(--text-color);
   outline: none;
 }
@@ -926,7 +926,7 @@ html[dir="rtl"][data-theme="light"] .nano-wrapper:not(.nano-wrapper-shader) .nan
 }
 
 .nano-search-form-compact .nano-search-input {
-  font-size: 0.875rem;
+  font-size: 16px;
 }
 
 .nano-search-form-compact .nano-search-btn span {
@@ -1418,7 +1418,7 @@ body.nano-ios-fs-active {
 
 @media (hover: none), (pointer: coarse) {
   .nano-player-controls {
-    padding-bottom: max(env(safe-area-inset-bottom), 18px);
+    padding-bottom: max(env(safe-area-inset-bottom), 28px);
   }
 
   .nano-control-btn {
@@ -1516,6 +1516,31 @@ body.nano-ios-fs-active {
   .nano-player-title {
     font-size: 0.7rem;
     max-width: 60%;
+  }
+
+  .nano-volume-container {
+    display: none !important;
+  }
+
+  .nano-controls-row {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .nano-player-time {
+    font-size: 0.75rem;
+  }
+
+  .nano-controls-right {
+    gap: 4px;
+  }
+
+  .nano-player-dropdown {
+    max-height: 250px;
+    overflow-y: auto;
+    width: 220px !important;
+    right: 8px !important;
+    bottom: 56px !important;
   }
 }
 
@@ -2205,7 +2230,7 @@ body.nano-ios-fs-active {
   padding: 12px 20px;
   color: var(--text-color);
   outline: none;
-  font-size: 0.95rem;
+  font-size: 16px;
 }
 
 .nano-dialog-btn {
@@ -2661,7 +2686,7 @@ body.nano-ios-fs-active {
   color: var(--text-color);
   padding: 0 14px;
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 16px;
   outline: none;
   box-shadow: none;
 }
@@ -2894,7 +2919,7 @@ body.nano-ios-fs-active {
   color: var(--text-color);
   padding: 0 14px;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 16px;
   text-transform: lowercase;
   outline: none;
   box-shadow: none;

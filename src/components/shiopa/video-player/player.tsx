@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import Hls from "hls.js"
 import { IoPlay, IoPause, IoSettings } from "react-icons/io5"
-import { MdDns, MdSubtitles } from "react-icons/md"
+import { MdSubtitles } from "react-icons/md"
 import { HiMiniRectangleStack } from "react-icons/hi2"
+import { BiSolidVolumeFull } from "react-icons/bi"
+import { ImVolumeMute2 } from "react-icons/im"
+import { RiFullscreenFill, RiFullscreenExitFill } from "react-icons/ri"
 import { TRANSLATIONS } from "../locales/translations"
 
 interface ServerInfo {
@@ -631,6 +634,8 @@ export default function Player({
         ref={videoRef}
         className="nano-video-element"
         playsInline
+        webkitplaysinline="true"
+        autoPlay
         controls={false}
         disablePictureInPicture
         controlsList="nodownload nofullscreen noremoteplayback"
@@ -735,41 +740,7 @@ export default function Player({
               </button>
             )}
 
-            {servers.length > 0 && setActiveServer && (
-              <div className="nano-server-control">
-                <button
-                  type="button"
-                  className="nano-control-btn"
-                  onClick={() => {
-                    setServerOpen(!serverOpen)
-                    setSettingsOpen(false)
-                    setSubtitleOpen(false)
-                  }}
-                >
-                  <MdDns />
-                </button>
-                {serverOpen && (
-                  <div className="nano-player-dropdown nano-player-dropdown-servers">
-                    <div className="nano-dropdown-title">{label("playerServers", "Servers")}</div>
-                    <div className="nano-dropdown-list">
-                      {servers.map((server) => (
-                        <button
-                          type="button"
-                          key={server.id}
-                          className={`nano-dropdown-item ${activeServer === server.id ? "active" : ""}`}
-                          onClick={() => {
-                            setActiveServer(server.id)
-                            setServerOpen(false)
-                          }}
-                        >
-                          {server.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+
 
             {subtitles.length > 0 && (
               <div className="nano-server-control">
@@ -853,7 +824,29 @@ export default function Player({
                       </div>
                     </>
                   )}
-                  <div className="nano-dropdown-title" style={qualities.length > 0 ? { marginTop: "12px" } : undefined}>
+                  {servers.length > 0 && setActiveServer && (
+                    <>
+                      <div className="nano-dropdown-title" style={qualities.length > 0 ? { marginTop: "12px" } : undefined}>
+                        {label("playerServers", "Servers")}
+                      </div>
+                      <div className="nano-dropdown-list">
+                        {servers.map((server) => (
+                          <button
+                            type="button"
+                            key={server.id}
+                            className={`nano-dropdown-item ${activeServer === server.id ? "active" : ""}`}
+                            onClick={() => {
+                              setActiveServer(server.id)
+                              setSettingsOpen(false)
+                            }}
+                          >
+                            {server.name}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <div className="nano-dropdown-title" style={(qualities.length > 0 || servers.length > 0) ? { marginTop: "12px" } : undefined}>
                     {label("playerSpeed", "Speed")}
                   </div>
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>

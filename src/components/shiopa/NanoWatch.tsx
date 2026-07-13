@@ -1040,7 +1040,7 @@ export default function NanoWatch({ id, type, season, episode }: NanoWatchProps)
   }))
 
   return (
-    <div className="nano-watch-wrapper" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', margin: 0, padding: 0 }}>
+    <div className="nano-watch-wrapper" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100dvh', margin: 0, padding: 0 }}>
       {canSkipServer && (
         <button
           onClick={handleSkipServer}

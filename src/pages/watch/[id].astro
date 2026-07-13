@@ -57,7 +57,7 @@ const publicConfig = getPublicShiopaConfig(shiopaConfig);
       })();
     </script>
   </head>
-  <body style="margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background-color: #000;">
+  <body style="margin: 0; padding: 0; width: 100vw; height: 100vh; height: 100dvh; overflow: hidden; background-color: #000;">
     <NanoWatch client:load id={id || ''} type={type} season={season} episode={episode} />
     <script is:inline>
       if ('serviceWorker' in navigator) {
