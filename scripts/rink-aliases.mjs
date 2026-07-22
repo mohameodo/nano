@@ -19,6 +19,7 @@ export const RINK_ALIAS_BY_FILE = {
   "cineby.ts": { id: "momo", name: "Momo" },
   "xpass.ts": { id: "tsuki", name: "Tsuki" },
   "vidfast.ts": { id: "shiopa", name: "Shiopa", public: true },
+  "vidcodin.ts": { id: "var", name: "Var", public: true },
 };
 
 export function getAliasForFile(fileName) {

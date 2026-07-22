@@ -19,6 +19,7 @@ src/shade/catalog/**
 !src/shade/catalog/yume.rink
 !src/shade/catalog/shiopa.rink
 !src/shade/catalog/tsuki.rink
+!src/shade/catalog/var.rink
 
 src/shade/private/**
 !src/shade/private/.gitkeep
@@ -28,6 +29,7 @@ src/lib/providers/**
 !src/lib/providers/rei.ts
 !src/lib/providers/shiopa.ts
 !src/lib/providers/yume.ts
+!src/lib/providers/var.ts
 !src/lib/providers/utils.ts
 !src/lib/providers/sources.ts
 !src/lib/providers/new-sources.ts

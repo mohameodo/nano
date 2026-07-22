@@ -37,6 +37,7 @@ const DEV_KEY_ALIASES: Record<string, { id: string; name: string }> = {
   cineby: { id: "momo", name: "Momo" },
   xpass: { id: "tsuki", name: "Tsuki" },
   vidfast: { id: "shiopa", name: "Shiopa" },
+  vidcodin: { id: "var", name: "Var" },
 };
 
 function applyDevAlias(plugin: ScraperPlugin): ScraperPlugin {
