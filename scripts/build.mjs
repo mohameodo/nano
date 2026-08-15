@@ -12,4 +12,13 @@ if (result.error) {
   process.exit(1)
 }
 
+import fs from "node:fs"
+import path from "node:path"
+
+const distClient = path.join(process.cwd(), "dist", "client")
+const distRoot = path.join(process.cwd(), "dist")
+if (fs.existsSync(distClient)) {
+  fs.cpSync(distClient, distRoot, { recursive: true, force: false })
+}
+
 process.exit(result.status ?? 1)

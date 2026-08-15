@@ -149,12 +149,24 @@ function blocked(status: number, error: string, retryAfter?: number): Response {
 
 export async function protectRequest(request: Request): Promise<ProtectionResult> {
   const url = new URL(request.url)
+  const pathname = url.pathname.toLowerCase()
+  if (
+    pathname.startsWith("/_astro/") ||
+    pathname.startsWith("/icons/") ||
+    pathname.startsWith("/font/") ||
+    pathname === "/sw.js" ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/favicon.ico"
+  ) {
+    return { sessionId: "", setCookie: false }
+  }
+
   const now = Date.now()
   const session = readSession(request, now)
   const sessionId = session.id
   const setCookie = session.fresh
 
-  if (honeypots.has(url.pathname.toLowerCase())) {
+  if (honeypots.has(pathname)) {
     return { response: blocked(404, "Not found"), sessionId, setCookie }
   }
 
@@ -236,7 +248,8 @@ export function secureResponse(response: Response, sessionId: string, setCookie:
   headers.set("X-Content-Type-Options", "nosniff")
   headers.set("Referrer-Policy", "same-origin")
   headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-  headers.set("Cross-Origin-Resource-Policy", "same-site")
+  headers.set("Cross-Origin-Resource-Policy", "cross-origin")
+  headers.set("Access-Control-Allow-Origin", "*")
   headers.set("Content-Security-Policy", "frame-ancestors 'self'; base-uri 'self'; object-src 'none'")
   if (setCookie) {
     headers.append("Set-Cookie", `shiopa-sse=${encodeURIComponent(sessionId)}; Path=/; Max-Age=${sessionTtl / 1000}; HttpOnly; SameSite=Lax; Secure`)
