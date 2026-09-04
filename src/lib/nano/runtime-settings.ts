@@ -3,7 +3,6 @@ import { shiopaConfig } from "../../components/shiopa/config.shiopa"
 export type RuntimeSettings = {
   showWatermarks: boolean
   showTrending: boolean
-  showQuickTags: boolean
   enableAuth: boolean
   enableStreamId: boolean
   enableContinueWatching: boolean
@@ -57,7 +56,6 @@ export function defaultRuntimeSettings(): RuntimeSettings {
   return {
     showWatermarks: features.showWatermarks ?? false,
     showTrending: features.showTrending ?? true,
-    showQuickTags: features.showQuickTags ?? false,
     enableAuth: features.enableAuth ?? true,
     enableStreamId: features.enableStreamId ?? true,
     enableContinueWatching: features.enableContinueWatching ?? true,

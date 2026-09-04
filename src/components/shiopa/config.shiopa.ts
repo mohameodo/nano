@@ -63,7 +63,6 @@ export interface ShiopaConfig {
   features: {
     showWatermarks: boolean;
     showTrending: boolean;
-    showQuickTags: boolean;
     enableAuth: boolean;
     enableContinueWatching?: boolean;
     enableWatchlist?: boolean;
@@ -124,7 +123,6 @@ const configObject: ShiopaConfig = {
     devMode: getEnv("DEV", false),
     showWatermarks: getEnv("SHOW_WATERMARKS", false),
     showTrending: getEnv("SHOW_TRENDING", true),
-    showQuickTags: getEnv("SHOW_QUICK_TAGS", false),
     enableAuth: getEnv("ENABLE_AUTH", true),
     enableStreamId: getEnv("ENABLE_STREAMID", true),
     enableContinueWatching: getEnv("ENABLE_CONTINUE_WATCHING", true),

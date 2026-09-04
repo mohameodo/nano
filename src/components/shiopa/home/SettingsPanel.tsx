@@ -30,7 +30,6 @@ type SettingsPanelProps = {
 
 const FEATURE_TOGGLES: Array<{ key: keyof RuntimeSettings; labelKey: string; descKey: string }> = [
   { key: "showTrending", labelKey: "setTrending", descKey: "setTrendingDesc" },
-  { key: "showQuickTags", labelKey: "setQuickTags", descKey: "setQuickTagsDesc" },
   { key: "showWatermarks", labelKey: "setWatermarks", descKey: "setWatermarksDesc" },
   { key: "showGreeting", labelKey: "setGreeting", descKey: "setGreetingDesc" },
   { key: "enableAuth", labelKey: "setLogin", descKey: "setLoginDesc" },

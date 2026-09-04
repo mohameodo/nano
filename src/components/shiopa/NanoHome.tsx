@@ -689,41 +689,6 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
             loading={loading}
           />
 
-          {runtimeSettings.showQuickTags && (
-            <div className="nano-quick-tags">
-              <button
-                className={`nano-quick-tag ${query.toLowerCase() === "action" ? "nano-quick-tag-active" : ""}`}
-                onClick={() => handleQuickSearch("Action")}
-              >
-                action
-              </button>
-              <button
-                className={`nano-quick-tag ${query.toLowerCase() === "comedy" ? "nano-quick-tag-active" : ""}`}
-                onClick={() => handleQuickSearch("Comedy")}
-              >
-                comedy
-              </button>
-              <button
-                className={`nano-quick-tag ${query.toLowerCase() === "sci-fi" ? "nano-quick-tag-active" : ""}`}
-                onClick={() => handleQuickSearch("Sci-Fi")}
-              >
-                sci-fi
-              </button>
-              <button
-                className={`nano-quick-tag ${query.toLowerCase() === "drama" ? "nano-quick-tag-active" : ""}`}
-                onClick={() => handleQuickSearch("Drama")}
-              >
-                drama
-              </button>
-              <button
-                className={`nano-quick-tag ${query.toLowerCase() === "anime" ? "nano-quick-tag-active" : ""}`}
-                onClick={() => handleQuickSearch("Anime")}
-              >
-                anime
-              </button>
-            </div>
-          )}
-
 
 
           {(runtimeSettings.enableContinueWatching ?? true) && continueWatching.length > 0 && (
