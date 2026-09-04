@@ -216,6 +216,9 @@ export default function SettingsPanel({
     woozlit: false,
   })
   const [appVersion, setAppVersion] = useState("")
+  const [currentUser, setCurrentUser] = useState("")
+  const [userProfile, setUserProfile] = useState<{ displayName?: string; avatar?: string } | null>(null)
+  const [customAvatarInput, setCustomAvatarInput] = useState("")
   const [streamIdNewUser, setStreamIdNewUser] = useState("")
   const [streamIdNewDisplay, setStreamIdNewDisplay] = useState("")
   const [streamIdConnectHandle, setStreamIdConnectHandle] = useState("")
@@ -228,6 +231,29 @@ export default function SettingsPanel({
     fetchGithubVersion().then((version) => {
       if (version) setAppVersion(version)
     })
+    if (typeof window !== "undefined") {
+      const savedUser = localStorage.getItem("shiopa-user")
+      const savedAvatar = localStorage.getItem("shiopa-avatar")
+      if (savedUser) {
+        setCurrentUser(savedUser)
+        if (savedAvatar) setCustomAvatarInput(savedAvatar)
+        fetch(`/api/streamid/profile?handle=${encodeURIComponent(savedUser)}`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data) {
+              setUserProfile({
+                displayName: data.displayName || savedUser,
+                avatar: savedAvatar || data.avatar,
+              })
+              if (!savedAvatar && data.avatar) setCustomAvatarInput(data.avatar)
+            }
+          })
+          .catch(() => {})
+      } else {
+        setCurrentUser("")
+        setUserProfile(null)
+      }
+    }
   }, [open])
 
   if (!open) return null
@@ -527,112 +553,172 @@ export default function SettingsPanel({
           />
 
           {(settings.enableStreamId ?? true) && (
-            <div className="nano-settings-group" style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "12px", marginTop: "8px" }}>
-              <SubInput
-                label={labelFor(t, "streamIdNodeUrlLabel", "identity node url")}
-                value={settings.streamIdNodeUrl || "https://shiopa.com"}
-                onChange={(v) => onSelect("streamIdNodeUrl", v)}
-                placeholder="https://shiopa.com"
-              />
-
-              <div style={{ marginTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px" }}>
-                <span className="nano-settings-label" style={{ display: "block", marginBottom: "4px" }}>
-                  {labelFor(t, "streamIdCreateTitle", "create username")}
-                </span>
-                <span className="nano-settings-desc" style={{ display: "block", marginBottom: "12px" }}>
-                  {labelFor(t, "streamIdCreateDesc", "usernames live on identity nodes")}
-                </span>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <SubInput
-                    label={labelFor(t, "streamIdUsername", "requested username")}
-                    value={streamIdNewUser}
-                    onChange={setStreamIdNewUser}
-                    placeholder="demo"
-                  />
-                  <SubInput
-                    label={labelFor(t, "streamIdDisplayName", "display name")}
-                    value={streamIdNewDisplay}
-                    onChange={setStreamIdNewDisplay}
-                    placeholder="Demo User"
-                  />
-                  <button
-                    type="button"
-                    className="nano-btn-full"
-                    onClick={async () => {
-                      setStreamIdMsg("");
-                      setStreamIdResult(null);
-                      if (!streamIdNewUser.trim()) return;
-                      setIsCreatingStreamId(true);
-                      try {
-                        const res = await createStreamIDAccount({
-                          username: streamIdNewUser.trim(),
-                          displayName: streamIdNewDisplay.trim(),
-                          nodeUrl: settings.streamIdNodeUrl,
-                        });
-                        setStreamIdResult(res);
-                        setStreamIdMsg("Account created successfully!");
-                      } catch (err: any) {
-                        setStreamIdMsg(err?.message || "Failed to create handle");
-                      } finally {
-                        setIsCreatingStreamId(false);
-                      }
-                    }}
-                    style={{ height: "36px", marginTop: "4px", backgroundColor: "var(--btn-bg)" }}
-                  >
-                    {isCreatingStreamId ? labelFor(t, "loading", "creating...") : labelFor(t, "streamIdCreateBtn", "create handle on node")}
-                  </button>
-
-                  {streamIdMsg && <div style={{ fontSize: "0.8rem", color: "var(--accent-color)", marginTop: "4px" }}>{streamIdMsg}</div>}
-
-                  {streamIdResult && (
-                    <div style={{ background: "rgba(99, 102, 241, 0.15)", border: "1px solid rgba(99, 102, 241, 0.4)", borderRadius: "8px", padding: "12px", marginTop: "8px" }}>
-                      <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: "#6366f1" }}>
-                        Handle: {streamIdResult.handle || `@${streamIdResult.username}@shiopa.com`}
+            <div className="nano-settings-group" style={{ padding: "14px", background: "rgba(255,255,255,0.03)", borderRadius: "16px", marginTop: "8px" }}>
+              {currentUser ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", background: "rgba(255,255,255,0.04)", padding: "12px", borderRadius: "12px" }}>
+                    {customAvatarInput ? (
+                      <img src={customAvatarInput} alt="avatar" style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "var(--accent-color)", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", flexShrink: 0 }}>
+                        {currentUser.charAt(1)?.toUpperCase() || "U"}
                       </div>
-                      {streamIdResult.secret && (
-                        <div style={{ marginTop: "6px" }}>
-                          <div style={{ fontSize: "0.75rem", color: "#ef4444", fontWeight: "bold" }}>
-                            {labelFor(t, "streamIdSecretWarning", "IMPORTANT: Save your secret key now! It is shown ONLY ONCE and is NEVER stored on Shiopa.")}
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--text-color)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {userProfile?.displayName || currentUser}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", opacity: 0.6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {currentUser}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="nano-btn-full"
+                      onClick={() => {
+                        localStorage.removeItem("shiopa-user")
+                        localStorage.removeItem("shiopa-avatar")
+                        setCurrentUser("")
+                        setUserProfile(null)
+                        window.location.reload()
+                      }}
+                      style={{ height: "30px", padding: "0 10px", fontSize: "0.75rem", backgroundColor: "rgba(239, 68, 68, 0.2)", color: "#ef4444" }}
+                    >
+                      {labelFor(t, "logout", "logout")}
+                    </button>
+                  </div>
+
+                  <SubInput
+                    label={labelFor(t, "streamIdAvatarUrl", "custom avatar url")}
+                    value={customAvatarInput}
+                    onChange={(v) => {
+                      setCustomAvatarInput(v)
+                      if (v.trim()) {
+                        localStorage.setItem("shiopa-avatar", v.trim())
+                      } else {
+                        localStorage.removeItem("shiopa-avatar")
+                      }
+                      setUserProfile((prev) => ({ ...prev, avatar: v.trim() || undefined }))
+                    }}
+                    placeholder="https://..."
+                  />
+
+                  <SubInput
+                    label={labelFor(t, "streamIdNodeUrlLabel", "identity node url")}
+                    value={settings.streamIdNodeUrl || "https://shiopa.com"}
+                    onChange={(v) => onSelect("streamIdNodeUrl", v)}
+                    placeholder="https://shiopa.com"
+                  />
+                </div>
+              ) : (
+                <>
+                  <SubInput
+                    label={labelFor(t, "streamIdNodeUrlLabel", "identity node url")}
+                    value={settings.streamIdNodeUrl || "https://shiopa.com"}
+                    onChange={(v) => onSelect("streamIdNodeUrl", v)}
+                    placeholder="https://shiopa.com"
+                  />
+
+                  <div style={{ marginTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px" }}>
+                    <span className="nano-settings-label" style={{ display: "block", marginBottom: "4px" }}>
+                      {labelFor(t, "streamIdCreateTitle", "create username")}
+                    </span>
+                    <span className="nano-settings-desc" style={{ display: "block", marginBottom: "12px" }}>
+                      {labelFor(t, "streamIdCreateDesc", "usernames live on identity nodes")}
+                    </span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <SubInput
+                        label={labelFor(t, "streamIdUsername", "requested username")}
+                        value={streamIdNewUser}
+                        onChange={setStreamIdNewUser}
+                        placeholder="demo"
+                      />
+                      <SubInput
+                        label={labelFor(t, "streamIdDisplayName", "display name")}
+                        value={streamIdNewDisplay}
+                        onChange={setStreamIdNewDisplay}
+                        placeholder="Demo User"
+                      />
+                      <button
+                        type="button"
+                        className="nano-btn-full"
+                        onClick={async () => {
+                          setStreamIdMsg("");
+                          setStreamIdResult(null);
+                          if (!streamIdNewUser.trim()) return;
+                          setIsCreatingStreamId(true);
+                          try {
+                            const res = await createStreamIDAccount({
+                              username: streamIdNewUser.trim(),
+                              displayName: streamIdNewDisplay.trim(),
+                              nodeUrl: settings.streamIdNodeUrl,
+                            });
+                            setStreamIdResult(res);
+                            setStreamIdMsg("Account created successfully!");
+                          } catch (err: any) {
+                            setStreamIdMsg(err?.message || "Failed to create handle");
+                          } finally {
+                            setIsCreatingStreamId(false);
+                          }
+                        }}
+                        style={{ height: "36px", marginTop: "4px", backgroundColor: "var(--btn-bg)" }}
+                      >
+                        {isCreatingStreamId ? labelFor(t, "loading", "creating...") : labelFor(t, "streamIdCreateBtn", "create handle on node")}
+                      </button>
+
+                      {streamIdMsg && <div style={{ fontSize: "0.8rem", color: "var(--accent-color)", marginTop: "4px" }}>{streamIdMsg}</div>}
+
+                      {streamIdResult && (
+                        <div style={{ background: "rgba(99, 102, 241, 0.15)", border: "1px solid rgba(99, 102, 241, 0.4)", borderRadius: "8px", padding: "12px", marginTop: "8px" }}>
+                          <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: "#6366f1" }}>
+                            Handle: {streamIdResult.handle || `@${streamIdResult.username}@shiopa.com`}
                           </div>
-                          <div style={{ fontFamily: "monospace", fontSize: "0.85rem", background: "rgba(0,0,0,0.5)", padding: "6px 8px", borderRadius: "4px", marginTop: "4px", wordBreak: "break-all", userSelect: "all" }}>
-                            {streamIdResult.secret}
-                          </div>
+                          {streamIdResult.secret && (
+                            <div style={{ marginTop: "6px" }}>
+                              <div style={{ fontSize: "0.75rem", color: "#ef4444", fontWeight: "bold" }}>
+                                {labelFor(t, "streamIdSecretWarning", "IMPORTANT: Save your secret key now! It is shown ONLY ONCE and is NEVER stored on Shiopa.")}
+                              </div>
+                              <div style={{ fontFamily: "monospace", fontSize: "0.85rem", background: "rgba(0,0,0,0.5)", padding: "6px 8px", borderRadius: "4px", marginTop: "4px", wordBreak: "break-all", userSelect: "all" }}>
+                                {streamIdResult.secret}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div style={{ marginTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px" }}>
-                <span className="nano-settings-label" style={{ display: "block", marginBottom: "4px" }}>
-                  {labelFor(t, "streamIdConnectTitle", "connect streamid")}
-                </span>
-                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                  <input
-                    type="text"
-                    className="nano-settings-input-full"
-                    placeholder={labelFor(t, "streamIdHandleInput", "@user@node.example")}
-                    value={streamIdConnectHandle}
-                    onChange={(e) => setStreamIdConnectHandle(e.target.value)}
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    className="nano-btn-full"
-                    onClick={() => {
-                      if (!streamIdConnectHandle.trim()) return;
-                      loginWithStreamID({
-                        handle: streamIdConnectHandle.trim(),
-                        nodeUrl: settings.streamIdNodeUrl,
-                      });
-                    }}
-                    style={{ height: "36px", padding: "0 14px", backgroundColor: "var(--accent-color)", color: "#000", fontWeight: "bold" }}
-                  >
-                    {labelFor(t, "connect", "connect")}
-                  </button>
-                </div>
-              </div>
+                  <div style={{ marginTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px" }}>
+                    <span className="nano-settings-label" style={{ display: "block", marginBottom: "4px" }}>
+                      {labelFor(t, "streamIdConnectTitle", "connect streamid")}
+                    </span>
+                    <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                      <input
+                        type="text"
+                        className="nano-settings-input-full"
+                        placeholder={labelFor(t, "streamIdHandleInput", "@user@node.example")}
+                        value={streamIdConnectHandle}
+                        onChange={(e) => setStreamIdConnectHandle(e.target.value)}
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        className="nano-btn-full"
+                        onClick={() => {
+                          if (!streamIdConnectHandle.trim()) return;
+                          loginWithStreamID({
+                            handle: streamIdConnectHandle.trim(),
+                            nodeUrl: settings.streamIdNodeUrl,
+                          });
+                        }}
+                        style={{ height: "36px", padding: "0 14px", backgroundColor: "var(--accent-color)", color: "#000", fontWeight: "bold" }}
+                      >
+                        {labelFor(t, "connect", "connect")}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

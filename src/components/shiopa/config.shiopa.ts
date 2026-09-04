@@ -127,8 +127,8 @@ const configObject: ShiopaConfig = {
     showQuickTags: getEnv("SHOW_QUICK_TAGS", false),
     enableAuth: getEnv("ENABLE_AUTH", true),
     enableStreamId: getEnv("ENABLE_STREAMID", true),
-    enableContinueWatching: false,
-    enableWatchlist: false,
+    enableContinueWatching: getEnv("ENABLE_CONTINUE_WATCHING", true),
+    enableWatchlist: getEnv("ENABLE_WATCHLIST", true),
     enableLocalLibrary: getEnv("ENABLE_LOCAL_LIBRARY", false),
     enableLocalLibraryEditing: getEnv("ENABLE_LOCAL_LIBRARY_EDITING", false),
     header: {

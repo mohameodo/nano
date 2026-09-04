@@ -118,9 +118,27 @@ export async function loginWithStreamID(options: {
   sessionStorage.setItem("streamid_target_handle", parsed.fullHandle);
   sessionStorage.setItem("streamid_node_url", targetNode);
 
+  const clientId = window.location.hostname;
+
+  // Auto-register site with identity node before redirecting
+  try {
+    const autoRegisterUrl = `${targetNode.replace(/\/$/, "")}/streamid/v1/oauth/clients/auto`;
+    await fetch(autoRegisterUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        redirectUri: redirectUri,
+        redirect_uri: redirectUri,
+        name: "Shiopa Nano",
+        clientId: clientId,
+        client_id: clientId,
+      }),
+    }).catch(() => {});
+  } catch {}
+
   const params = new URLSearchParams({
     response_type: "code",
-    client_id: window.location.host,
+    client_id: clientId,
     redirect_uri: redirectUri,
     scope: scopes.join(" "),
     state: state,
@@ -129,7 +147,7 @@ export async function loginWithStreamID(options: {
     handle: parsed.fullHandle,
   });
 
-  const authUrl = `${targetNode.replace(/\/$/, "")}/oauth/authorize?${params.toString()}`;
+  const authUrl = `${targetNode.replace(/\/$/, "")}/streamid/v1/oauth/authorize?${params.toString()}`;
   window.location.href = authUrl;
 }
 
@@ -166,4 +184,20 @@ export async function createStreamIDAccount(data: {
     throw new Error(json.error || "Failed to create StreamID account");
   }
   return json;
+}
+
+export async function fetchStreamIDData(handle: string) {
+  try {
+    const parsed = parseHandle(handle);
+    const nodeUrl = parsed.nodeUrl;
+    const [favRes, progRes] = await Promise.allSettled([
+      fetch(`${nodeUrl.replace(/\/$/, "")}/streamid/v1/favorites?handle=${encodeURIComponent(parsed.fullHandle)}`),
+      fetch(`${nodeUrl.replace(/\/$/, "")}/streamid/v1/watch/progress?handle=${encodeURIComponent(parsed.fullHandle)}`),
+    ]);
+    const favorites = favRes.status === "fulfilled" && favRes.value.ok ? await favRes.value.json() : null;
+    const progress = progRes.status === "fulfilled" && progRes.value.ok ? await progRes.value.json() : null;
+    return { favorites, progress };
+  } catch {
+    return { favorites: null, progress: null };
+  }
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect, lazy, Suspense } from "react"
 import type { FormEvent } from "react"
 import { getStoredHandle, storeHandle, clearStoredHandle, verifyPermission, loadRinkJson, getBrowserItems } from "../../lib/nano/local-library"
+import { fetchStreamIDData } from "../../lib/nano/streamid"
 import { 
   FaChevronDown, 
   FaTv, 
@@ -73,6 +74,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
   const [loginOpen, setLoginOpen] = useState(false)
   const [termsOpen, setTermsOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState(initialUser)
+  const [userProfile, setUserProfile] = useState<{ displayName?: string; avatar?: string } | null>(null)
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -82,6 +84,28 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (!currentUser) {
+      setUserProfile(null)
+      return
+    }
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(`/api/streamid/profile?handle=${encodeURIComponent(currentUser)}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.displayName || data.avatar) {
+            setUserProfile({
+              displayName: data.displayName,
+              avatar: data.avatar,
+            })
+          }
+        }
+      } catch {}
+    }
+    fetchProfile()
+  }, [currentUser])
   const [continueWatching, setContinueWatching] = useState<any[]>([])
   const [watchlist, setWatchlist] = useState<any[]>([])
   const [localItems, setLocalItems] = useState<any[]>([])
@@ -125,20 +149,47 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
     loadAllLocalItems()
   }, [runtimeSettings.enableLocalLibrary])
 
-  const loadLocalLists = () => {
-    if (shiopaConfig.features.enableContinueWatching) {
-      const savedCW = localStorage.getItem("shiopa-continue-watching")
-      setContinueWatching(savedCW ? JSON.parse(savedCW) : [])
+  const loadLocalLists = async () => {
+    const savedCW = typeof window !== "undefined" ? localStorage.getItem("shiopa-continue-watching") : null
+    let cwItems = savedCW ? JSON.parse(savedCW) : []
+    const savedWL = typeof window !== "undefined" ? localStorage.getItem("shiopa-watchlist") : null
+    let wlItems = savedWL ? JSON.parse(savedWL) : []
+
+    if (currentUser) {
+      try {
+        const streamData = await fetchStreamIDData(currentUser)
+        if (streamData?.favorites?.items) {
+          const map = new Map<string, any>()
+          wlItems.forEach((i: any) => map.set(String(i.id), i))
+          streamData.favorites.items.forEach((item: any) => {
+            const id = item.mediaId || item.id
+            if (id && !map.has(String(id))) {
+              map.set(String(id), { id, title: item.title || id, media_type: item.media_type || "movie" })
+            }
+          })
+          wlItems = Array.from(map.values())
+        }
+        if (streamData?.progress?.items) {
+          const map = new Map<string, any>()
+          cwItems.forEach((i: any) => map.set(String(i.id), i))
+          streamData.progress.items.forEach((item: any) => {
+            const id = item.mediaId || item.id
+            if (id && !map.has(String(id))) {
+              map.set(String(id), { id, title: item.title || id, type: item.media_type || "movie" })
+            }
+          })
+          cwItems = Array.from(map.values())
+        }
+      } catch {}
     }
-    if (shiopaConfig.features.enableWatchlist) {
-      const savedWL = localStorage.getItem("shiopa-watchlist")
-      setWatchlist(savedWL ? JSON.parse(savedWL) : [])
-    }
+
+    setContinueWatching(cwItems)
+    setWatchlist(wlItems)
   }
 
   useEffect(() => {
     loadLocalLists()
-  }, [])
+  }, [currentUser])
 
   useEffect(() => {
     if (isHorrorQuery(activeQuery) || isHorrorQuery(query)) {
@@ -479,6 +530,8 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
       )}
       <Header
         initialUser={currentUser}
+        userAvatar={userProfile?.avatar}
+        userDisplayName={userProfile?.displayName}
         handleLogout={handleLogout}
         themeHue={themeHue}
         setThemeHue={setThemeHue}
@@ -674,7 +727,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
 
 
 
-          {shiopaConfig.features.enableContinueWatching && continueWatching.length > 0 && (
+          {(runtimeSettings.enableContinueWatching ?? true) && continueWatching.length > 0 && (
             <div style={{ marginBottom: "32px" }}>
               <h2 className="nano-trending-title">Continue Watching</h2>
               <MediaGrid
@@ -692,7 +745,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
             </div>
           )}
 
-          {shiopaConfig.features.enableWatchlist && watchlist.length > 0 && (
+          {(runtimeSettings.enableWatchlist ?? true) && watchlist.length > 0 && (
             <div style={{ marginBottom: "32px" }}>
               <h2 className="nano-trending-title">My List</h2>
               <MediaGrid

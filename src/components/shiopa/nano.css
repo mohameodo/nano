@@ -2942,3 +2942,14 @@ body.nano-ios-fs-active {
   }
 }
 
+.nano-trending-title {
+  font-family: var(--system-font);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-color);
+  margin-bottom: 16px;
+  text-transform: lowercase;
+  opacity: 0.9;
+}
+

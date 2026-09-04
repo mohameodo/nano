@@ -73,6 +73,8 @@ function hueToHex(h: number): string {
 
 interface HeaderProps {
   initialUser?: string
+  userAvatar?: string
+  userDisplayName?: string
   handleLogout: () => void
   themeHue: number
   setThemeHue: (hue: number) => void
@@ -101,6 +103,8 @@ interface HeaderProps {
 
 export default function Header({
   initialUser,
+  userAvatar,
+  userDisplayName,
   handleLogout,
   themeHue,
   setThemeHue,
@@ -153,6 +157,8 @@ export default function Header({
     }
   }
 
+  const displayName = userDisplayName || initialUser;
+
   return (
     <header className="nano-header">
       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
@@ -161,10 +167,14 @@ export default function Header({
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
         {enableAuth && (
           initialUser ? (
-            <div className="nano-btn-full nano-header-login-btn" style={{ display: "flex", alignItems: "center", gap: "6px", height: "36px", padding: "0 12px", fontSize: "0.85rem" }}>
-              <FaUser style={{ fontSize: "0.85rem" }} />
-              <span className="nano-btn-text-desktop">{initialUser}</span>
-              <span className="nano-btn-text-desktop" style={{ cursor: "pointer", marginLeft: "6px", opacity: 0.7 }} onClick={handleLogout}>{t.logout}</span>
+            <div className="nano-btn-full nano-header-login-btn" style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", padding: "0 12px", fontSize: "0.85rem" }}>
+              {userAvatar ? (
+                <img src={userAvatar} alt="avatar" style={{ width: "20px", height: "20px", borderRadius: "50%", objectFit: "cover" }} />
+              ) : (
+                <FaUser style={{ fontSize: "0.85rem" }} />
+              )}
+              <span className="nano-btn-text-desktop" title={initialUser}>{displayName}</span>
+              <span className="nano-btn-text-desktop" style={{ cursor: "pointer", marginLeft: "4px", opacity: 0.7 }} onClick={handleLogout}>{t.logout}</span>
             </div>
           ) : (
             <button 

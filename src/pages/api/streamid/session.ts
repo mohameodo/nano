@@ -7,21 +7,36 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (code && nodeUrl && verifier) {
       // Exchange code for token on node
-      const tokenEndpoint = `${nodeUrl.replace(/\/$/, "")}/oauth/token`;
-      const tokenRes = await fetch(tokenEndpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          grant_type: "authorization_code",
-          code,
-          redirect_uri: redirectUri || "",
-          client_id: new URL(redirectUri || "https://shiopa.com").host,
-          code_verifier: verifier,
-        }),
-      });
+      const targetBase = nodeUrl.replace(/\/$/, "");
+      const tokenEndpoints = [
+        `${targetBase}/streamid/v1/oauth/token`,
+        `${targetBase}/oauth/token`
+      ];
 
-      if (!tokenRes.ok) {
-        const errJson = await tokenRes.json().catch(() => ({}));
+      let tokenRes: Response | null = null;
+      for (const endpoint of tokenEndpoints) {
+        try {
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              grant_type: "authorization_code",
+              code,
+              redirect_uri: redirectUri || "",
+              client_id: new URL(redirectUri || "https://shiopa.com").hostname,
+              code_verifier: verifier,
+            }),
+          });
+          if (res.ok) {
+            tokenRes = res;
+            break;
+          }
+          if (!tokenRes) tokenRes = res;
+        } catch {}
+      }
+
+      if (!tokenRes || !tokenRes.ok) {
+        const errJson = tokenRes ? await tokenRes.json().catch(() => ({})) : {};
         return new Response(JSON.stringify({ error: errJson.error || "Token exchange failed" }), {
           status: 400,
           headers: { "Content-Type": "application/json" },
