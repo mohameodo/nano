@@ -56,8 +56,8 @@ export function defaultRuntimeSettings(): RuntimeSettings {
   const theme = config.theme || {}
   return {
     showWatermarks: features.showWatermarks ?? false,
-    showTrending: features.showTrending ?? false,
-    showQuickTags: features.showQuickTags ?? false,
+    showTrending: features.showTrending ?? true,
+    showQuickTags: features.showQuickTags ?? true,
     enableAuth: features.enableAuth ?? true,
     enableStreamId: features.enableStreamId ?? true,
     enableContinueWatching: features.enableContinueWatching ?? true,
@@ -87,7 +87,7 @@ export function defaultRuntimeSettings(): RuntimeSettings {
     logoSize: logo.size || "lg",
     themeMode: theme.defaultMode || "dark",
     themeHue: theme.defaultHue ?? 200,
-    siteName: logo.text || "shiopa",
+    siteName: logo.text || "tood",
     customGif: logo.customGif || "",
     customIcon: logo.customIcon || "",
     customGifWidth: logo.customGifWidth || "",
