@@ -1,4 +1,4 @@
-﻿import { useMemo } from "react"
+import { useMemo } from "react"
 import { LiquidMetal } from "@paper-design/shaders-react"
 import { useAccentColors } from "./use-accent-colors"
 
@@ -22,15 +22,25 @@ export function LiquidShaderBackground({
     return {
       colorBack: isDark ? "#050505" : "#f5f5f5",
       colorTint: accent.start,
-      speed: isDark ? 0.3 : 0.2,
-      scale: 0.8,
+      speed: isDark ? 0.35 : 0.25,
+      scale: 3.2,
     }
   }, [accent.start, isDark])
 
   return (
     <div
       className={`nano-shader-bg ${className}`.trim()}
-      style={{ backgroundColor: config.colorBack }}
+      style={{
+        backgroundColor: config.colorBack,
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        inset: 0,
+        zIndex: 0,
+        overflow: "hidden",
+      }}
       aria-hidden="true"
     >
       <LiquidMetal
@@ -39,10 +49,10 @@ export function LiquidShaderBackground({
         colorTint={config.colorTint}
         speed={config.speed}
         scale={config.scale}
-        softness={0.4}
-        repetition={3}
-        distortion={0.12}
-        style={{ height: "100%", width: "100%" }}
+        softness={0.25}
+        repetition={8}
+        distortion={0.45}
+        style={{ height: "100vh", width: "100vw", position: "absolute", top: 0, left: 0, inset: 0, objectFit: "cover" }}
       />
     </div>
   )
