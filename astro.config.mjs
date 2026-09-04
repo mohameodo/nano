@@ -89,6 +89,11 @@ export default defineConfig({
         '@vidstack/react',
         '@vidstack/react/player/layouts/default',
         'hls.js',
+        'react-icons',
+        'react-icons/fa',
+        'react-icons/ri',
+        'react-icons/io5',
+        'react-icons/bi',
       ],
       exclude: [
         'playwright-core',
@@ -124,7 +129,8 @@ export default defineConfig({
     ssr: {
       noExternal: [
         '@vidstack/react',
-        '@vidstack/react/player/layouts/default'
+        '@vidstack/react/player/layouts/default',
+        'react-icons',
       ],
       external: [
         'pg', 'pg-pool', 'pgpass', 'pg-cloudflare', 'split2',

@@ -137,9 +137,10 @@ const configObject: ShiopaConfig = {
     },
     videoPlayer: {
       autoPlay: getEnv("AUTOPLAY", true),
-      defaultServer: getEnv("DEFAULT_SERVER", "shiopa"),
+      defaultServer: getEnv("DEFAULT_SERVER", "akari"),
       useVidstack: getEnv("USE_VIDSTACK", false),
       servers: [
+        { id: "akari", name: "Akari" },
         { id: "shiopa", name: "Shiopa" },
         { id: "rei", name: "Rei" },
         { id: "yume", name: "Yume" },
