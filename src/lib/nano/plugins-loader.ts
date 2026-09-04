@@ -43,7 +43,7 @@ function pushPlugin(plugins: ScraperPlugin[], plugin: any, alias: boolean) {
   if (!plugin) return;
   const list = Array.isArray(plugin) ? plugin : [plugin];
   for (const p of list) {
-    if (!p?.key) continue;
+    if (!p?.key || p.enabled === false) continue;
     plugins.push(alias ? applyDevAlias(p) : p);
   }
 }
