@@ -123,8 +123,19 @@ export async function loginWithStreamID(options: {
 
   const clientId = window.location.hostname;
 
-  // Auto-register site with identity node before redirecting
+  // Auto-register site with identity node via server proxy first (bypass browser CORS), fallback to direct fetch
   try {
+    await fetch("/api/streamid/auto-register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        redirectUri: redirectUri,
+        name: "tood",
+        clientId: clientId,
+        nodeUrl: targetNode,
+      }),
+    }).catch(() => {});
+
     const autoRegisterUrl = `${targetNode.replace(/\/$/, "")}/streamid/v1/oauth/clients/auto`;
     await fetch(autoRegisterUrl, {
       method: "POST",
@@ -132,7 +143,7 @@ export async function loginWithStreamID(options: {
       body: JSON.stringify({
         redirectUri: redirectUri,
         redirect_uri: redirectUri,
-        name: "Shiopa Nano",
+        name: "tood",
         clientId: clientId,
         client_id: clientId,
       }),
