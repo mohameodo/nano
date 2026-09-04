@@ -143,6 +143,9 @@ const configObject: ShiopaConfig = {
         { id: "shiopa", name: "Shiopa" },
         { id: "rei", name: "Rei" },
         { id: "yume", name: "Yume" },
+        { id: "itsuki", name: "Itsuki" },
+        { id: "tsuki", name: "Tsuki" },
+        { id: "var", name: "Var" },
         ...((getEnv("DEV", false) || (!isServer && (window as any).__SHIOPA_CONFIG__?.features?.devMode)) ? [
           { id: "momo", name: "Momo" },
           { id: "tsuki", name: "Tsuki" },

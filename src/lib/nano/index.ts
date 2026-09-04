@@ -41,6 +41,8 @@ async function probeStreamAlive(
   url: string,
   headers: Record<string, string>
 ): Promise<boolean> {
+  if (!url) return false;
+  if (url.startsWith("/api/proxy")) return true;
   try {
     const res = await fetch(url, {
       method: "GET",
@@ -50,37 +52,26 @@ async function probeStreamAlive(
         Range: "bytes=0-2047",
         ...headers,
       },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(6000),
     });
-    if (!(res.ok || res.status === 206)) return false;
-    const ct = (res.headers.get("content-type") || "").toLowerCase();
-    const text = await res.text();
-    const start = text.trimStart().slice(0, 300).toLowerCase();
-    if (
-      ct.includes("text/html") ||
-      start.startsWith("<!doctype") ||
-      start.startsWith("<html") ||
-      start.includes("domain suspended") ||
-      start.includes("upstream 403")
-    ) {
-      return false;
+    if (res.ok || res.status === 206 || res.status === 302 || res.status === 301) {
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      const text = await res.text();
+      const start = text.trimStart().slice(0, 300).toLowerCase();
+      if (
+        (ct.includes("text/html") && !url.includes(".m3u8")) ||
+        start.startsWith("<!doctype") ||
+        start.startsWith("<html") ||
+        start.includes("domain suspended") ||
+        start.includes("upstream 403")
+      ) {
+        return false;
+      }
+      return true;
     }
-    if (
-      url.includes(".m3u8") ||
-      url.includes("/hls/") ||
-      url.includes("playlist") ||
-      url.includes("stream-proxy")
-    ) {
-      return (
-        text.includes("#EXTM3U") ||
-        text.includes("#EXT-X-") ||
-        start.startsWith("{") ||
-        start.startsWith("http")
-      );
-    }
-    return text.length > 0;
-  } catch {
     return false;
+  } catch {
+    return url.includes(".m3u8") || url.includes(".mp4") || url.includes("/hls/");
   }
 }
 
@@ -233,14 +224,18 @@ export async function resolveStream(
   const s = type === "tv" ? season : undefined;
   const e = type === "tv" ? episode : undefined;
 
-  const plugins = mergeProviders(await getPlugins());
-  const plugin = plugins.find((p) => p.key === providerId);
-  if (plugin && plugin.enabled) {
+  const plugins = mergeProviders(await getPlugins()).filter((p) => p.enabled);
+  const targetPlugin = plugins.find((p) => p.key === providerId);
+  const otherPlugins = plugins.filter((p) => p.key !== providerId);
+
+  const orderedPlugins = targetPlugin ? [targetPlugin, ...otherPlugins] : plugins;
+
+  for (const plugin of orderedPlugins) {
     try {
       const stream = await plugin.fetchStream(id, type, s, e);
-      if (stream) {
-        return finalizeStream(
-          providerId,
+      if (stream?.url) {
+        const finalized = await finalizeStream(
+          plugin.key,
           {
             url: stream.url,
             isM3U8: stream.isM3U8,
@@ -250,6 +245,7 @@ export async function resolveStream(
           },
           true
         );
+        if (finalized.url) return finalized;
       }
     } catch {}
   }
