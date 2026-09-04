@@ -70,9 +70,16 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
   const [totalPages, setTotalPages] = useState(1)
   const [filter, setFilter] = useState<"all" | "movie" | "tv">("all")
   const [filterOpen, setFilterOpen] = useState(false)
-  const [loginOpen, setLoginOpen] = useState(false)
-  const [termsOpen, setTermsOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState(initialUser)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedUser = localStorage.getItem("shiopa-user")
+      if (savedUser && !currentUser) {
+        setCurrentUser(savedUser)
+      }
+    }
+  }, [])
   const [continueWatching, setContinueWatching] = useState<any[]>([])
   const [watchlist, setWatchlist] = useState<any[]>([])
   const [localItems, setLocalItems] = useState<any[]>([])
@@ -430,10 +437,14 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
   }
 
   const handleLogout = async () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("shiopa-user")
+      fetch("/api/streamid/session", { method: "DELETE" }).catch(() => {})
+    }
     await fetch("/api/auth", {
       method: "POST",
       body: JSON.stringify({ action: "logout" }),
-    })
+    }).catch(() => {})
     setCurrentUser(undefined)
   }
 
@@ -863,8 +874,14 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
       <LoginDialog
         isOpen={loginOpen}
         onClose={() => setLoginOpen(false)}
-        onSuccess={(username) => setCurrentUser(username)}
+        onSuccess={(username) => {
+          setCurrentUser(username)
+          if (typeof window !== "undefined") {
+            localStorage.setItem("shiopa-user", username)
+          }
+        }}
         t={t}
+        enableStreamId={runtimeSettings.enableStreamId ?? true}
       />
       <TermsDialog
         isOpen={termsOpen}

@@ -5,6 +5,8 @@ export type RuntimeSettings = {
   showTrending: boolean
   showQuickTags: boolean
   enableAuth: boolean
+  enableStreamId: boolean
+  streamIdNodeUrl: string
   enableLocalLibrary: boolean
   enableLocalLibraryEditing: boolean
   showGreeting: boolean
@@ -54,7 +56,9 @@ export function defaultRuntimeSettings(): RuntimeSettings {
     showWatermarks: features.showWatermarks ?? false,
     showTrending: features.showTrending ?? false,
     showQuickTags: features.showQuickTags ?? false,
-    enableAuth: features.enableAuth ?? false,
+    enableAuth: features.enableAuth ?? true,
+    enableStreamId: features.enableStreamId ?? true,
+    streamIdNodeUrl: features.streamIdNodeUrl || "https://shiopa.com",
     enableLocalLibrary: features.enableLocalLibrary ?? false,
     enableLocalLibraryEditing: features.enableLocalLibraryEditing ?? false,
     showGreeting: logo.showGreeting ?? true,

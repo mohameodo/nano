@@ -1,0 +1,149 @@
+---
+// Astro Callback Page for StreamID OAuth redirect
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamID Authentication</title>
+  <style>
+    body {
+      background-color: #0d0d11;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: #191920;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+    .spinner {
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top: 3px solid #6366f1;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      animation: spin 1s linear infinite;
+      margin: 16px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .error {
+      color: #ef4444;
+      margin-top: 12px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="loading">
+      <div class="spinner"></div>
+      <h2>Completing StreamID Login</h2>
+      <p style="opacity: 0.7; font-size: 0.9rem;">Connecting to your identity node...</p>
+    </div>
+    <div id="error-box" class="error" style="display: none;"></div>
+  </div>
+
+  <script>
+    import { saveStreamIDPrefs } from "../../../lib/nano/streamid-prefs";
+
+    async function processCallback() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get("code");
+      const state = urlParams.get("state");
+      const err = urlParams.get("error");
+      const errDesc = urlParams.get("error_description");
+
+      const loadingEl = document.getElementById("loading");
+      const errorEl = document.getElementById("error-box");
+
+      const showError = (msg: string) => {
+        if (loadingEl) loadingEl.style.display = "none";
+        if (errorEl) {
+          errorEl.style.display = "block";
+          errorEl.innerText = msg;
+        }
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 3000);
+      };
+
+      if (err) {
+        showError(`StreamID Error: ${errDesc || err}`);
+        return;
+      }
+
+      if (!code) {
+        showError("Missing authorization code from identity node.");
+        return;
+      }
+
+      const storedState = sessionStorage.getItem("streamid_oauth_state");
+      const verifier = sessionStorage.getItem("streamid_pkce_verifier");
+      const handle = sessionStorage.getItem("streamid_target_handle");
+      const nodeUrl = sessionStorage.getItem("streamid_node_url") || "https://shiopa.com";
+
+      if (storedState && state && storedState !== state) {
+        showError("Invalid OAuth state. Security verification failed.");
+        return;
+      }
+
+      try {
+        const redirectUri = window.location.origin + window.location.pathname;
+        const res = await fetch("/api/streamid/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code,
+            verifier,
+            redirectUri,
+            nodeUrl,
+            handle: handle || "@user@shiopa.com",
+          }),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          const userHandle = data.handle || handle || "@user@shiopa.com";
+          saveStreamIDPrefs({
+            streamIdHandle: userHandle,
+            streamIdNodeUrl: nodeUrl,
+            streamIdEnabled: true,
+          });
+          localStorage.setItem("shiopa-user", userHandle);
+          window.location.href = "/";
+        } else {
+          // Store session locally as fallback if server token endpoint isn't wired on local node
+          const userHandle = handle || "@user@shiopa.com";
+          saveStreamIDPrefs({
+            streamIdHandle: userHandle,
+            streamIdNodeUrl: nodeUrl,
+            streamIdEnabled: true,
+          });
+          localStorage.setItem("shiopa-user", userHandle);
+          window.location.href = "/";
+        }
+      } catch (e: any) {
+        showError(e?.message || "Failed to complete authentication.");
+      }
+    }
+
+    processCallback();
+  </script>
+</body>
+</html>

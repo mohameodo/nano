@@ -151,23 +151,35 @@ export default function Header({
   return (
     <header className="nano-header">
       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-  
-        {enableAuth && (
-          initialUser ? (
-            <div className="nano-btn-full" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <FaUser />
-              <span>{initialUser}</span>
-              <span style={{ cursor: "pointer", marginLeft: "10px", opacity: 0.7 }} onClick={handleLogout}>{t.logout}</span>
-            </div>
-          ) : (
-            <button className="nano-btn-full" onClick={onLoginClick || (() => window.location.href = "/login")}>
-              {t.login}
-            </button>
-          )
-        )}
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        {enableAuth && (
+          initialUser ? (
+            <div className="nano-btn-full nano-header-login-btn" style={{ display: "flex", alignItems: "center", gap: "6px", height: "36px", padding: "0 12px", fontSize: "0.85rem" }}>
+              <FaUser style={{ fontSize: "0.85rem" }} />
+              <span className="nano-btn-text-desktop">{initialUser}</span>
+              <span className="nano-btn-text-desktop" style={{ cursor: "pointer", marginLeft: "6px", opacity: 0.7 }} onClick={handleLogout}>{t.logout}</span>
+            </div>
+          ) : (
+            <button 
+              className="nano-btn-full nano-header-login-btn" 
+              onClick={onLoginClick || (() => window.location.href = "/login")}
+              style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "6px", 
+                height: "36px",
+                padding: "0 12px",
+                fontSize: "0.85rem" 
+              }}
+              title={t.login || "Login"}
+            >
+              <FaUser style={{ fontSize: "0.85rem" }} />
+              <span className="nano-btn-text-desktop">{t.login}</span>
+            </button>
+          )
+        )}
         {enableLocalLibrary && typeof window !== "undefined" && window.location.pathname !== "/admin" && window.location.pathname !== "/admin/" && (
           <button 
             className="nano-btn-full" 

@@ -2943,3 +2943,14 @@ body.nano-ios-fs-active {
   outline: none;
   box-shadow: none;
 }
+
+@media (max-width: 640px) {
+  .nano-header-login-btn .nano-btn-text-desktop {
+    display: none !important;
+  }
+  .nano-header-login-btn {
+    padding: 0 10px !important;
+    gap: 0 !important;
+  }
+}
+
