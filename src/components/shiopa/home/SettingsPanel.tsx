@@ -68,6 +68,8 @@ const GREETING_LABELS: Record<string, string> = {
 const BG_LABELS: Record<string, string> = {
   "neon-dither": "setOptNeonDither",
   falling: "setOptFalling",
+  waves: "setOptWaves",
+  liquid: "setOptLiquid",
   dots: "setOptDots",
   lines: "setOptLines",
   "thin-lines": "setOptThinLines",

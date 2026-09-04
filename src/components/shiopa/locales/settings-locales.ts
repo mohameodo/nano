@@ -44,6 +44,8 @@ const EN = {
   setOptLogoIcon: "logo and icon",
   setOptNeonDither: "neon dither",
   setOptFalling: "falling",
+  setOptWaves: "waves",
+  setOptLiquid: "liquid metal",
   setOptDots: "dots",
   setOptLines: "lines",
   setOptThinLines: "thin lines",

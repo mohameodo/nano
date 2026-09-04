@@ -457,7 +457,7 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
     <div className={`nano-wrapper ${shaderBg ? "nano-wrapper-shader" : ""} ${bgStyleClass}`} style={wrapperStyle}>
       {shaderBg && (
         <NanoDeferredShader
-          key={`${themeMode}-${themeHue}-${isMonochrome ? "m" : "c"}`}
+          key={`${themeMode}-${runtimeSettings.bgStyle || shiopaConfig.theme.bgStyle}-${themeHue}-${isMonochrome ? "m" : "c"}`}
           variant={runtimeSettings.bgStyle || shiopaConfig.theme.bgStyle}
           themeMode={themeMode}
           themeHue={themeHue}

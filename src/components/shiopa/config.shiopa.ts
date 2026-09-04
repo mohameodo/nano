@@ -32,7 +32,7 @@ export interface ShiopaConfig {
       bgDark: string;
       bgLight: string;
     };
-    bgStyle?: "dots" | "lines" | "thin-lines" | "text" | "grain" | "neon-dither" | "falling" | "none" | "custom";
+    bgStyle?: "dots" | "lines" | "thin-lines" | "text" | "grain" | "neon-dither" | "falling" | "waves" | "liquid" | "none" | "custom";
     customBg?: string;
     fontFamily?: string;
   };

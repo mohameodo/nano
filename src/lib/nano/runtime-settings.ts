@@ -137,6 +137,6 @@ export function getServerOptions(): Array<{ id: string; name: string }> {
 }
 
 export const GREETING_STYLE_OPTIONS = ["nano-pet", "slogans", "logo", "icon", "gif", "logo-and-icon"] as const
-export const BG_STYLE_OPTIONS = ["neon-dither", "falling", "dots", "lines", "thin-lines", "grain", "none", "custom"] as const
+export const BG_STYLE_OPTIONS = ["neon-dither", "falling", "waves", "liquid", "dots", "lines", "thin-lines", "grain", "none", "custom"] as const
 export const PALETTE_OPTIONS = ["color", "monochrome"] as const
 export const LOGO_SIZE_OPTIONS = ["sm", "md", "lg", "xl"] as const

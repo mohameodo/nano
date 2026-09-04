@@ -6,6 +6,7 @@ const SERVER_NAMES = {
   yume: "Yume",
   itsuki: "Itsuki",
   tsuki: "Tsuki",
+  var: "Var",
 };
 
 export function getAliasForFile() {

@@ -19,6 +19,7 @@ src/shade/catalog/**
 !src/shade/catalog/yume.rink
 !src/shade/catalog/tsuki.rink
 !src/shade/catalog/shiopa.rink
+!src/shade/catalog/var.rink
 
 src/shade/private/**
 !src/shade/private/.gitkeep
