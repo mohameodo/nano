@@ -47,7 +47,7 @@ export default function LoginDialog({ isOpen, onClose, onSuccess, t, enableStrea
     e.preventDefault()
     setError("")
     if (!streamIdHandle.trim()) {
-      setError("Please enter a valid StreamID handle (e.g. @user@shiopa.com)")
+      setError("Please enter a valid StreamID handle")
       return
     }
 
@@ -61,109 +61,256 @@ export default function LoginDialog({ isOpen, onClose, onSuccess, t, enableStrea
   }
 
   return (
-    <div className="nano-dialog-overlay" onClick={onClose}>
-      <div className="nano-dialog-card" onClick={(e) => e.stopPropagation()}>
-        <div className="nano-dialog-header">
-          <div className="nano-dialog-title">{t.authTitle || "shiopa nano auth"}</div>
-          <button className="nano-dialog-close-btn" onClick={onClose}>&times;</button>
+    <div
+      className="nano-dialog-overlay"
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.75)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: "16px"
+      }}
+    >
+      <div
+        className="nano-dialog-card"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%",
+          maxWidth: "380px",
+          backgroundColor: "color-mix(in srgb, var(--bg-color) 92%, #ffffff 8%)",
+          border: "1px solid color-mix(in srgb, var(--bg-color) 82%, #ffffff 18%)",
+          borderRadius: "24px",
+          padding: "24px",
+          boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+          color: "var(--text-color)"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+          <span style={{ fontSize: "1.1rem", fontWeight: "700", letterSpacing: "-0.02em" }}>
+            {t.authTitle || "shiopa auth"}
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: "rgba(255,255,255,0.08)",
+              border: "none",
+              color: "var(--text-color)",
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              fontSize: "1rem",
+              opacity: 0.8
+            }}
+          >
+            &times;
+          </button>
         </div>
 
         {enableStreamId && (
-          <div style={{ display: "flex", gap: "8px", marginBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.1)", pb: "8px" }}>
+          <div
+            style={{
+              display: "flex",
+              background: "color-mix(in srgb, var(--bg-color) 85%, var(--text-color) 8%)",
+              borderRadius: "9999px",
+              padding: "4px",
+              marginBottom: "20px"
+            }}
+          >
             <button
               type="button"
-              className={`nano-btn-full ${authType === "streamid" ? "nano-btn-active" : ""}`}
               onClick={() => { setAuthType("streamid"); setError(""); }}
               style={{
                 flex: 1,
-                height: "32px",
-                fontSize: "0.8rem",
+                height: "34px",
+                fontSize: "0.82rem",
+                fontWeight: authType === "streamid" ? "600" : "500",
                 backgroundColor: authType === "streamid" ? "var(--accent-color)" : "transparent",
                 color: authType === "streamid" ? "#000000" : "var(--text-color)",
                 border: "none",
-                borderRadius: "9999px"
+                borderRadius: "9999px",
+                cursor: "pointer",
+                transition: "all 0.2s ease"
               }}
             >
               {t.streamId || "StreamID"}
             </button>
             <button
               type="button"
-              className={`nano-btn-full ${authType === "standard" ? "nano-btn-active" : ""}`}
               onClick={() => { setAuthType("standard"); setError(""); }}
               style={{
                 flex: 1,
-                height: "32px",
-                fontSize: "0.8rem",
+                height: "34px",
+                fontSize: "0.82rem",
+                fontWeight: authType === "standard" ? "600" : "500",
                 backgroundColor: authType === "standard" ? "var(--accent-color)" : "transparent",
                 color: authType === "standard" ? "#000000" : "var(--text-color)",
                 border: "none",
-                borderRadius: "9999px"
+                borderRadius: "9999px",
+                cursor: "pointer",
+                transition: "all 0.2s ease"
               }}
             >
-              {t.username || "Standard"}
+              {t.username || "username"}
             </button>
           </div>
         )}
 
-        {error && <div className="nano-dialog-error" style={{ color: "#ef4444", fontSize: "0.85rem", marginBottom: "12px", textAlign: "center" }}>{error}</div>}
+        {error && (
+          <div
+            style={{
+              backgroundColor: "rgba(239, 68, 68, 0.15)",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              borderRadius: "12px",
+              padding: "8px 12px",
+              color: "#f87171",
+              fontSize: "0.82rem",
+              marginBottom: "16px",
+              textAlign: "center"
+            }}
+          >
+            {error}
+          </div>
+        )}
 
         {authType === "streamid" && enableStreamId ? (
           <form onSubmit={handleStreamIDSubmit}>
-            <div className="nano-dialog-input-group">
-              <label className="nano-dialog-label">{t.streamIdHandleLabel || "StreamID Handle"}</label>
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "0.78rem", opacity: 0.7, marginBottom: "6px" }}>
+                {t.streamIdHandleLabel || "streamid handle"}
+              </label>
               <input
                 type="text"
-                className="nano-dialog-input"
                 placeholder={t.streamIdHandlePlaceholder || "@user@shiopa.com"}
                 value={streamIdHandle}
                 onChange={(e) => setStreamIdHandle(e.target.value)}
                 required
-                style={{ width: "100%", height: "38px", borderRadius: "8px", padding: "0 12px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff" }}
+                style={{
+                  width: "100%",
+                  height: "42px",
+                  borderRadius: "9999px",
+                  padding: "0 16px",
+                  background: "color-mix(in srgb, var(--bg-color) 80%, var(--text-color) 10%)",
+                  border: "1px solid color-mix(in srgb, var(--bg-color) 75%, var(--text-color) 18%)",
+                  color: "var(--text-color)",
+                  fontSize: "0.9rem",
+                  outline: "none"
+                }}
               />
             </div>
-            <p style={{ fontSize: "0.75rem", opacity: 0.7, margin: "8px 0 16px 0", lineHeight: "1.3" }}>
+            <p style={{ fontSize: "0.75rem", opacity: 0.65, margin: "6px 0 20px 0", lineHeight: "1.4" }}>
               Sign in happens on your node. Shiopa only receives OAuth tokens — never your secret key.
             </p>
-            <button type="submit" className="nano-dialog-btn" disabled={isSubmitting} style={{ width: "100%", height: "40px", borderRadius: "8px", backgroundColor: "var(--accent-color)", color: "#000", fontWeight: "bold", border: "none", cursor: "pointer" }}>
-              {isSubmitting ? t.loading || "Connecting..." : t.loginWithStreamId || "Sign in with StreamID"}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              style={{
+                width: "100%",
+                height: "44px",
+                borderRadius: "9999px",
+                backgroundColor: "var(--accent-color)",
+                color: "#000000",
+                fontWeight: "700",
+                fontSize: "0.9rem",
+                border: "none",
+                cursor: "pointer",
+                transition: "opacity 0.2s ease"
+              }}
+            >
+              {isSubmitting ? t.loading || "connecting..." : t.loginWithStreamId || "sign in with StreamID"}
             </button>
           </form>
         ) : (
           <form onSubmit={handleStandardSubmit}>
-            <div className="nano-dialog-input-group">
-              <label className="nano-dialog-label">{t.username}</label>
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "0.78rem", opacity: 0.7, marginBottom: "6px" }}>
+                {t.username}
+              </label>
               <input
                 type="text"
-                className="nano-dialog-input"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                style={{ width: "100%", height: "38px", borderRadius: "8px", padding: "0 12px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff" }}
+                style={{
+                  width: "100%",
+                  height: "42px",
+                  borderRadius: "9999px",
+                  padding: "0 16px",
+                  background: "color-mix(in srgb, var(--bg-color) 80%, var(--text-color) 10%)",
+                  border: "1px solid color-mix(in srgb, var(--bg-color) 75%, var(--text-color) 18%)",
+                  color: "var(--text-color)",
+                  fontSize: "0.9rem",
+                  outline: "none"
+                }}
               />
             </div>
-            <div className="nano-dialog-input-group">
-              <label className="nano-dialog-label">{t.password}</label>
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ display: "block", fontSize: "0.78rem", opacity: 0.7, marginBottom: "6px" }}>
+                {t.password}
+              </label>
               <input
                 type="password"
-                className="nano-dialog-input"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                style={{ width: "100%", height: "38px", borderRadius: "8px", padding: "0 12px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff" }}
+                style={{
+                  width: "100%",
+                  height: "42px",
+                  borderRadius: "9999px",
+                  padding: "0 16px",
+                  background: "color-mix(in srgb, var(--bg-color) 80%, var(--text-color) 10%)",
+                  border: "1px solid color-mix(in srgb, var(--bg-color) 75%, var(--text-color) 18%)",
+                  color: "var(--text-color)",
+                  fontSize: "0.9rem",
+                  outline: "none"
+                }}
               />
             </div>
 
-            <button type="submit" className="nano-dialog-btn" style={{ width: "100%", height: "40px", borderRadius: "8px", backgroundColor: "var(--accent-color)", color: "#000", fontWeight: "bold", border: "none", cursor: "pointer", marginTop: "12px" }}>
+            <button
+              type="submit"
+              style={{
+                width: "100%",
+                height: "44px",
+                borderRadius: "9999px",
+                backgroundColor: "var(--accent-color)",
+                color: "#000000",
+                fontWeight: "700",
+                fontSize: "0.9rem",
+                border: "none",
+                cursor: "pointer",
+                marginBottom: "8px"
+              }}
+            >
               {mode === "login" ? t.login : t.signUp}
             </button>
             <button
               type="button"
-              className="nano-dialog-btn nano-dialog-btn-secondary"
               onClick={() => {
                 setMode(mode === "login" ? "signup" : "login")
                 setError("")
               }}
-              style={{ width: "100%", height: "36px", borderRadius: "8px", background: "transparent", color: "var(--text-color)", border: "none", cursor: "pointer", marginTop: "8px" }}
+              style={{
+                width: "100%",
+                height: "36px",
+                borderRadius: "9999px",
+                background: "transparent",
+                color: "var(--text-color)",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "0.82rem",
+                opacity: 0.75
+              }}
             >
               {mode === "login" ? t.createAccount : t.backToLogin}
             </button>
