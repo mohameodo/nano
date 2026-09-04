@@ -70,6 +70,8 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
   const [totalPages, setTotalPages] = useState(1)
   const [filter, setFilter] = useState<"all" | "movie" | "tv">("all")
   const [filterOpen, setFilterOpen] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(false)
+  const [termsOpen, setTermsOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState(initialUser)
 
   useEffect(() => {

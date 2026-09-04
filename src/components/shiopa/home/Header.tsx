@@ -122,8 +122,13 @@ export default function Header({
 }: HeaderProps) {
   const [themeOpen, setThemeOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const themeRef = useRef<HTMLDivElement>(null)
   const langRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -218,10 +223,10 @@ export default function Header({
               <div
                 className="nano-theme-toggle-knob"
                 style={{
-                  transform: themeMode === "dark" ? "translateX(32px)" : "translateX(0)",
+                  transform: (mounted ? themeMode === "dark" : true) ? "translateX(32px)" : "translateX(0)",
                 }}
               >
-                {themeMode === "dark" ? (
+                {(mounted ? themeMode === "dark" : true) ? (
                   <FaMoon className="nano-theme-toggle-knob-icon" />
                 ) : (
                   <FaSun className="nano-theme-toggle-knob-icon" />
