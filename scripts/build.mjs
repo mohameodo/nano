@@ -1,10 +1,12 @@
 import "./compile-all-rinks.mjs"
 import { spawnSync } from "node:child_process"
 
-const command = process.platform === "win32" ? "pnpm.cmd" : "pnpm"
-const result = spawnSync(command, ["exec", "astro", "build"], {
+import path from "node:path"
+
+const astroJs = path.join(process.cwd(), "node_modules", "astro", "astro.js")
+const result = spawnSync(process.execPath, [astroJs, "build"], {
   stdio: "inherit",
-  shell: process.platform === "win32",
+  env: process.env,
 })
 
 if (result.error) {
@@ -13,7 +15,6 @@ if (result.error) {
 }
 
 import fs from "node:fs"
-import path from "node:path"
 
 const distClient = path.join(process.cwd(), "dist", "client")
 const distRoot = path.join(process.cwd(), "dist")

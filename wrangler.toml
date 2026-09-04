@@ -4,6 +4,9 @@ compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2026-03-02"
 keep_vars = true
 
+[build]
+command = "node scripts/build.mjs"
+
 [assets]
 directory = "./dist"
 

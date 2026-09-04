@@ -1,8 +1,26 @@
 #!/usr/bin/env node
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 const args = process.argv.slice(2);
+
+process.env.CLOUDFLARE = "true";
+process.env.WRANGLER = "true";
+
+const workerPath = path.join(process.cwd(), 'dist', '_worker.js');
+const buildScript = path.join(process.cwd(), 'scripts', 'build.mjs');
+
+if ((!fs.existsSync(workerPath) || args.includes('deploy') || args.includes('publish')) && fs.existsSync(buildScript)) {
+  console.log('[wrangler-wrapper] Building project via scripts/build.mjs...');
+  const buildResult = spawnSync(process.execPath, [buildScript], {
+    stdio: 'inherit',
+    env: process.env,
+  });
+  if (buildResult.status !== 0) {
+    process.exit(buildResult.status ?? 1);
+  }
+}
 
 let realWranglerBin;
 try {
@@ -22,3 +40,4 @@ const child = spawn(process.execPath, [realWranglerBin, ...args], {
 child.on('close', (code) => {
   process.exit(code === null ? 1 : code);
 });
+
