@@ -66,7 +66,7 @@ export default function MediaCard({
       onClick={() => onClick(item)}
       style={{
         position: "relative",
-        borderRadius: "12px",
+        borderRadius: "24px",
         overflow: "hidden",
         cursor: "pointer",
         aspectRatio: "2/3",

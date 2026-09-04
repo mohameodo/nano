@@ -124,7 +124,7 @@ const configObject: ShiopaConfig = {
     devMode: getEnv("DEV", false),
     showWatermarks: getEnv("SHOW_WATERMARKS", false),
     showTrending: getEnv("SHOW_TRENDING", true),
-    showQuickTags: getEnv("SHOW_QUICK_TAGS", true),
+    showQuickTags: getEnv("SHOW_QUICK_TAGS", false),
     enableAuth: getEnv("ENABLE_AUTH", true),
     enableStreamId: getEnv("ENABLE_STREAMID", true),
     enableContinueWatching: getEnv("ENABLE_CONTINUE_WATCHING", true),

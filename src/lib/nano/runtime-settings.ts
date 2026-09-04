@@ -57,7 +57,7 @@ export function defaultRuntimeSettings(): RuntimeSettings {
   return {
     showWatermarks: features.showWatermarks ?? false,
     showTrending: features.showTrending ?? true,
-    showQuickTags: features.showQuickTags ?? true,
+    showQuickTags: features.showQuickTags ?? false,
     enableAuth: features.enableAuth ?? true,
     enableStreamId: features.enableStreamId ?? true,
     enableContinueWatching: features.enableContinueWatching ?? true,
