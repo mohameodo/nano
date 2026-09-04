@@ -107,7 +107,10 @@ export async function loginWithStreamID(options: {
   if (typeof window === "undefined") return;
 
   const parsed = parseHandle(options.handle, options.nodeUrl);
-  const targetNode = options.nodeUrl || parsed.nodeUrl;
+  let targetNode = options.nodeUrl || parsed.nodeUrl;
+  if (!targetNode.startsWith("http://") && !targetNode.startsWith("https://")) {
+    targetNode = `https://${targetNode}`;
+  }
   const redirectUri = options.redirectUri || `${window.location.origin}/auth/streamid/callback`;
   const scopes = options.scopes || ["openid", "profile.read"];
 

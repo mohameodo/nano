@@ -192,12 +192,11 @@ export default function NanoHome({ initialUser }: { initialUser?: string }) {
   }, [currentUser])
 
   useEffect(() => {
-    if (isHorrorQuery(activeQuery) || isHorrorQuery(query)) {
-      document.body.classList.add("horror-blood-mode")
-    } else {
-      document.body.classList.remove("horror-blood-mode")
-    }
-  }, [activeQuery, query])
+    const handleOpenLogin = () => setLoginOpen(true)
+    window.addEventListener("shiopa-open-login", handleOpenLogin)
+    return () => window.removeEventListener("shiopa-open-login", handleOpenLogin)
+  }, [])
+
 
 
 

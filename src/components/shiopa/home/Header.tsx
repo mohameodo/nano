@@ -179,7 +179,7 @@ export default function Header({
           ) : (
             <button 
               className="nano-btn-full nano-header-login-btn" 
-              onClick={onLoginClick || (() => window.location.href = "/login")}
+              onClick={onLoginClick || (() => window.dispatchEvent(new CustomEvent("shiopa-open-login")))}
               style={{ 
                 display: "flex", 
                 alignItems: "center", 

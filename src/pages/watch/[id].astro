@@ -3,9 +3,6 @@ import NanoWatch from '../../components/shiopa/NanoWatch';
 import { shiopaConfig } from '../../components/shiopa/config.shiopa';
 
 const user = Astro.cookies.get('user')?.value;
-if (shiopaConfig.features.enableAuth && !user) {
-  return Astro.redirect('/login');
-}
 
 const { id } = Astro.params;
 const type = Astro.url.searchParams.get('type') || 'movie';
