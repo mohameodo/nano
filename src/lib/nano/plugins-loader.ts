@@ -54,18 +54,10 @@ export async function getPlugins(): Promise<ScraperPlugin[]> {
 
   try {
     // Build-time decrypt via ?plugin — no eval/new Function at runtime (required for CF Workers)
-    const rinkModules = {
-      ...import.meta.glob("../../shade/catalog/**/*.rink", {
-        query: "?plugin",
-        eager: true,
-      }),
-      ...(isProd
-        ? {}
-        : import.meta.glob("../../shade/private/**/*.rink", {
-            query: "?plugin",
-            eager: true,
-          })),
-    };
+    const rinkModules = import.meta.glob("../../shade/catalog/**/*.rink", {
+      query: "?plugin",
+      eager: true,
+    });
     for (const path in rinkModules) {
       const mod = rinkModules[path] as any;
       const plugin = mod?.default ?? mod;
