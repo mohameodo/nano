@@ -43,23 +43,35 @@ async function probeStreamAlive(
 ): Promise<boolean> {
   if (!url) return false;
   if (url.startsWith("/api/proxy")) return true;
+
+  const isMediaFile =
+    url.includes(".m3u8") ||
+    url.includes(".mp4") ||
+    url.includes("/hls/") ||
+    url.includes("/vd/");
+
   try {
+    const probeHeaders: Record<string, string> = {
+      "User-Agent": USER_AGENT,
+      Accept: "*/*",
+      ...headers,
+    };
+    if (!url.includes(".m3u8")) {
+      probeHeaders.Range = "bytes=0-2047";
+    }
+
     const res = await fetch(url, {
       method: "GET",
-      headers: {
-        "User-Agent": USER_AGENT,
-        Accept: "*/*",
-        Range: "bytes=0-2047",
-        ...headers,
-      },
+      headers: probeHeaders,
       signal: AbortSignal.timeout(6000),
     });
+
     if (res.ok || res.status === 206 || res.status === 302 || res.status === 301) {
       const ct = (res.headers.get("content-type") || "").toLowerCase();
       const text = await res.text();
       const start = text.trimStart().slice(0, 300).toLowerCase();
       if (
-        (ct.includes("text/html") && !url.includes(".m3u8")) ||
+        (ct.includes("text/html") && !isMediaFile) ||
         start.startsWith("<!doctype") ||
         start.startsWith("<html") ||
         start.includes("domain suspended") ||
@@ -69,9 +81,13 @@ async function probeStreamAlive(
       }
       return true;
     }
+
+    if (isMediaFile && (res.status === 403 || res.status === 405 || res.status === 400)) {
+      return true;
+    }
     return false;
   } catch {
-    return url.includes(".m3u8") || url.includes(".mp4") || url.includes("/hls/");
+    return isMediaFile;
   }
 }
 
