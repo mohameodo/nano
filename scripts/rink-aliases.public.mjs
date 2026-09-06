@@ -1,12 +1,8 @@
 export const RINK_ALIAS_BY_FILE = {};
 
 const SERVER_NAMES = {
-  rei: "Rei",
   shiopa: "Shiopa",
-  yume: "Yume",
-  itsuki: "Itsuki",
-  tsuki: "Tsuki",
-  var: "Var",
+  suzu: "Suzu",
 };
 
 export function getAliasForFile() {
