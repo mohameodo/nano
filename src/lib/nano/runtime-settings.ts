@@ -137,8 +137,7 @@ export function getServerOptions(): Array<{ id: string; name: string }> {
   const config = (typeof window !== "undefined" ? (window as any).__SHIOPA_CONFIG__ : null) || shiopaConfig
   return config.features?.videoPlayer?.servers || [
     { id: "shiopa", name: "Shiopa" },
-    { id: "rei", name: "Rei" },
-    { id: "yume", name: "Yume" },
+    { id: "suzu", name: "Suzu" },
   ]
 }
 
